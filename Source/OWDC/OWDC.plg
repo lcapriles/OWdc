@@ -1,0 +1,46 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: OWDC - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSPA8.tmp" with contents
+[
+/nologo /Gz /Zp1 /MLd /W4 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "KERNEL" /Fo"Debug/" /Fd"Debug/" /FD /GZ /F 8388608 /c 
+"C:\E900\OWDC\Source\OWDC\01oc01.cpp"
+"C:\E900\OWDC\Source\OWDC\02it01.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSPA8.tmp" 
+Creating temporary file "C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSPA9.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib c:\e900\system\lib32\jdeunicode.lib c:\e900\system\lib32\jdel.lib c:\e900\system\lib32\jdekrnl.lib c:\e900\owdc\lib\OWDCmp.lib /nologo /stack:0x400000 /dll /incremental:yes /pdb:"Debug/OWDC.pdb" /debug /machine:I386 /out:"Debug/OWDC.dll" /implib:"Debug/OWDC.lib" /pdbtype:sept 
+.\Debug\01oc01.obj
+.\Debug\02it01.obj
+.\Debug\03ce01.obj
+.\Debug\GetBC.obj
+]
+Creating command line "link.exe @C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSPA9.tmp"
+<h3>Output Window</h3>
+Compiling...
+01oc01.cpp
+c:\e900\demo\include\b0100095.h(49) : error C2040: 'tagF0101ST' : 'struct tagF0101ST *' differs in levels of indirection from 'struct tagF0101ST'
+c:\e900\demo\include\b0100095.h(56) : error C2040: 'tagF0092AN' : 'struct tagF0092AN *' differs in levels of indirection from 'struct tagF0092AN'
+c:\e900\owdc\source\owdc\01oc01.cpp(1442) : warning C4127: conditional expression is constant
+c:\e900\owdc\source\owdc\01oc01.cpp(1579) : warning C4127: conditional expression is constant
+02it01.cpp
+c:\e900\demo\include\b0100095.h(49) : error C2040: 'tagF0101ST' : 'struct tagF0101ST *' differs in levels of indirection from 'struct tagF0101ST'
+c:\e900\demo\include\b0100095.h(56) : error C2040: 'tagF0092AN' : 'struct tagF0092AN *' differs in levels of indirection from 'struct tagF0092AN'
+c:\e900\owdc\source\owdc\02it01.cpp(1178) : warning C4127: conditional expression is constant
+c:\e900\owdc\source\owdc\02it01.cpp(1339) : warning C4127: conditional expression is constant
+Generating Code...
+Error executing cl.exe.
+
+
+
+<h3>Results</h3>
+OWDC.dll - 4 error(s), 4 warning(s)
+</pre>
+</body>
+</html>

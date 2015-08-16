@@ -1,0 +1,100 @@
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: Get Item UoM Conversion Factor
+ *    Template ID:   D4000520
+ *    Generated:     Mon Nov 22 17:54:27 2004
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_D4000520
+#define DATASTRUCTURE_D4000520
+
+typedef struct tagDSD4000520
+{
+  char              szBranchPlant[13];                   
+  char              szFromUnitOfMeasure[3];              
+  char              szToUnitOfMeasure[3];                
+  MATH_NUMERIC      mnQuantityToConvert;                 
+  char              cInventoryInterfaceFlag;             
+  MATH_NUMERIC      mnConversionFactorFromToPrim;        
+  MATH_NUMERIC      mnConversionFactorFrom_to_To;        
+  MATH_NUMERIC      mnConversionFactorTo_to_Primar;      
+  MATH_NUMERIC      mnQuantityConvertedToPrimary;        
+  char              cConvertToSecondary;                 
+  MATH_NUMERIC      mnQuantityConvertedToSecondary;      
+  char              cConvertToPurchasing;                
+  MATH_NUMERIC      mnQuantityConvertedToPurchasin;      
+  char              cConvertToPricing;                   
+  MATH_NUMERIC      mnQuantityConvertedToPricing;        
+  char              cConvertToShipping;                  
+  MATH_NUMERIC      mnQuantityConvertedToShipping;       
+  char              cConvertToWeight;                    
+  MATH_NUMERIC      mnQuantityConvertedToWeight;         
+  char              cConvertToVolume;                    
+  MATH_NUMERIC      mnQuantityConvertedToVolume;         
+  char              cPotencyMode;                        
+  char              szLotNumber[31];                     
+  char              cPotencyControl;                     
+  MATH_NUMERIC      mnStandardPotency;                   
+  char              szErrorMessageID[11];                
+  char              cSuppressErrorMsg;                   
+  char              cPotencyType;                        
+  MATH_NUMERIC      mnShortItemNumber;                   
+  char              cUOMByBranch;                        
+  char              szUOMToPrimary[3];                   
+  char              szUOMToSecondary[3];                 
+  char              szUOMToPurchasing[3];                
+  char              szUOMToPricing[3];                   
+  char              szUOMToWeight[3];                    
+  char              szUOMToVolume[3];                    
+  char              szUOMToShipping[3];                  
+  char              szStandardUOMConversion[3];          
+  MATH_NUMERIC      mnQuantityConvertedFromtoTo;         
+} DSD4000520, *LPDSD4000520;
+
+#define IDERRszBranchPlant_1                      1L
+#define IDERRszFromUnitOfMeasure_3                3L
+#define IDERRszToUnitOfMeasure_4                  4L
+#define IDERRmnQuantityToConvert_5                5L
+#define IDERRcInventoryInterfaceFlag_6            6L
+#define IDERRmnConversionFactorFromToPrim_8       8L
+#define IDERRmnConversionFactorFrom_to_To_9       9L
+#define IDERRmnConversionFactorTo_to_Primar_10    10L
+#define IDERRmnQuantityConvertedToPrimary_11      11L
+#define IDERRcConvertToSecondary_12               12L
+#define IDERRmnQuantityConvertedToSecondary_13    13L
+#define IDERRcConvertToPurchasing_14              14L
+#define IDERRmnQuantityConvertedToPurchasin_15    15L
+#define IDERRcConvertToPricing_16                 16L
+#define IDERRmnQuantityConvertedToPricing_17      17L
+#define IDERRcConvertToShipping_18                18L
+#define IDERRmnQuantityConvertedToShipping_19     19L
+#define IDERRcConvertToWeight_20                  20L
+#define IDERRmnQuantityConvertedToWeight_21       21L
+#define IDERRcConvertToVolume_22                  22L
+#define IDERRmnQuantityConvertedToVolume_23       23L
+#define IDERRcPotencyMode_24                      24L
+#define IDERRszLotNumber_25                       25L
+#define IDERRcPotencyControl_26                   26L
+#define IDERRmnStandardPotency_27                 27L
+#define IDERRszErrorMessageID_28                  28L
+#define IDERRcSuppressErrorMsg_29                 29L
+#define IDERRcPotencyType_30                      30L
+#define IDERRmnShortItemNumber_31                 31L
+#define IDERRcUOMByBranch_32                      32L
+#define IDERRszUOMToPrimary_33                    33L
+#define IDERRszUOMToSecondary_34                  34L
+#define IDERRszUOMToPurchasing_35                 35L
+#define IDERRszUOMToPricing_36                    36L
+#define IDERRszUOMToWeight_37                     37L
+#define IDERRszUOMToVolume_38                     38L
+#define IDERRszUOMToShipping_39                   39L
+#define IDERRszStandardUOMConversion_40           40L
+#define IDERRmnQuantityConvertedFromtoTo_41       41L
+
+#endif

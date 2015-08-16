@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OWDC", "OWDC.vcproj", "{FBF9B52C-B7B3-4FF7-AA65-FD660D387D97}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{FBF9B52C-B7B3-4FF7-AA65-FD660D387D97}.Debug.ActiveCfg = Debug|Win32
+		{FBF9B52C-B7B3-4FF7-AA65-FD660D387D97}.Debug.Build.0 = Debug|Win32
+		{FBF9B52C-B7B3-4FF7-AA65-FD660D387D97}.Release.ActiveCfg = Release|Win32
+		{FBF9B52C-B7B3-4FF7-AA65-FD660D387D97}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

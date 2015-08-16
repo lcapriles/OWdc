@@ -1,0 +1,2791 @@
+Listing of ER for Application : Receipt Routing Movement and Disposition (P43250)
+
+
+=======================================================================
+     FORM: Work With Routing Statuses [FIND BROWSE] (W43250K)
+=======================================================================
+     CONTROL:  FORM
+     EVENT:  Dialog is Initialized
+-----------------------------------------------------------------------
+0001 // ===============================================================
+0002 // Revision Log
+0003 // ===============================================================
+0004 // SAR 3373873 KH5712189 09/01/99 Enable QBE line for this form.
+0005 // SAR 3532117 LR5644366 01/04/00 Test Results from Receipts.
+0006 // SAR 4117644 LL6798332 06/19/00 Allowed to Move a larger quantity Sys 43
+0007 // SAR 4363597 CM5847956 07/11/00 Lot Desc Not Upd with Item Des -
+0008 // SAR 5180071 SL7095233 05/23/01 Second Item Number Blank
+0009 // SAR 5349615 MH6859916 08/31/01 JAS restarting
+0010 // SAR 4681907 RT4985134 10/09/01 ASN Enhancement
+0011 // SAR 5768431 BC7158396 04/16/02 Movement Select by Container ID
+0012 // SAR 6103271 ST7136592 07/24/02 Test entry & operation sequence
+0013 // SAR 7530848 RJ6951325 02/25/2005 Prevent cursor error in 'Move Shown Rows'
+0014 // ===============================================================
+0015 // Assign values if called from another application
+0016 // SAR 6366804 MT5885493 12/02/2002
+0017 // Moved Code for SAR 5349615 up from below
+0018 // SAR 5349615 Begin
+0019 FC Quantity at Operation = "0"
+0020 FC Match Type = "1"
+0021 // SAR 5349615 End
+0022 //
+0023 If FI DocumentOrderInvoiceE is not equal to <Blank> And FI DocumentOrderInvoiceE is not equal to <Null> And FI DocumentOrderInvoiceE is not equal to <Zero>
+0024    FC Order Number = FI DocumentOrderInvoiceE
+0025    Press Button(HC F&ind)
+0026 End If
+0027 //
+0028 If FI OrderType is not equal to <Blank> And FI OrderType is not equal to <Null>
+0029    FC Order Type = FI OrderType
+0030 Else
+0031    If PO szOrderType is not equal to <Blank>
+0032       FC Order Type = PO szOrderType
+0033    End If
+0034 End If
+0035 //
+0036 If FI CompanyKeyOrderNo is not equal to <Blank> And FI CompanyKeyOrderNo is not equal to <Null>
+0037    FC Order Company = FI CompanyKeyOrderNo
+0038 End If
+0039 //
+0040 If FI Identifiershortitem is not equal to <Zero>
+0041    FC ITM:ShortItemNo(wf) = FI Identifiershortitem
+0042 End If
+0043 //
+0044 If PO szOperationCode is not equal to <Blank>
+0045    FC Operation Code = PO szOperationCode
+0046 End If
+0047 //
+0048 If FC Business Unit is equal to <Blank> Or FC Business Unit is equal to <Null>
+0049    F40095 Get Default Branch
+           FC Business Unit <- szBranch
+0050    // SAR 6120126 RB5602502  07/26/02 Begin
+0051    If FC Business Unit is equal to <Blank>
+0052       FC Business Unit = "*"
+0053    End If
+0054    // SAR 6120126 RB5602502  07/26/02 End
+0055 End If
+0056 //
+0057 If PO szP3711Version is equal to <Blank> Or PO szP4310BVersion is equal to <Null>
+0058    PO szP3711Version = "ZJDE0001"
+0059 End If
+0060 //
+
+-----------------------------------------------------------------------
+     EVENT:  Post Dialog is Initialized
+-----------------------------------------------------------------------
+0001 // Change grid text description using text variables
+0002 //
+0003 Set Grid Column Heading(FC Grid, GC Tare SSCC, TV Tare Number)
+0004 Set Grid Column Heading(FC Grid, GC Pack SSCC, TV Pack Number)
+0005 Set Grid Column Heading(FC Grid, GC UPC, TV UPC/EAN)
+0006 Set Grid Column Heading(FC Grid, GC UPC Quantity, TV UPC/EAN Qty)
+0007 Set Grid Column Heading(FC Grid, GC UPCUOM, TV UPC/EAN UOM)
+0008 Set Grid Column Heading(FC Grid, GC SCC, TV SCC Number)
+0009 Set Grid Column Heading(FC Grid, GC SCC Quantity, TV SCC Qty)
+0010 //
+0011 If PO cShowHideUCC128 is equal to "1"
+0012    //   Hide UCC 128 Information : Form Control & Grid Columns
+0013    Hide Control(FC Tare Number)
+0014    Hide Control(FC SSCC Number - Tare Level)
+0015    Hide Control(FC Pack Number)
+0016    Hide Control(FC SSCC Number - Pack Level)
+0017    Hide Control(FC EPC Number)
+0018    Hide Grid Column(FC Grid, GC Tare SSCC)
+0019    Hide Grid Column(FC Grid, GC Pack SSCC)
+0020    Hide Grid Column(FC Grid, GC SCC)
+0021    Hide Grid Column(FC Grid, GC SCC Quantity)
+0022    Hide Grid Column(FC Grid, GC SCCUOM)
+0023    Hide Grid Column(FC Grid, GC UPC)
+0024    Hide Grid Column(FC Grid, GC UPC Quantity)
+0025    Hide Grid Column(FC Grid, GC UPCUOM)
+0026    Hide Grid Column(FC Grid, GC EPCNumber)
+0027 End If
+0028 F4101 Get Item Master Row
+        FC Item Number <> szPrimaryItemNumber
+        FC Business Unit -> szBranchPlant
+        FC ITM:ShortItemNo(wf) [HIDDEN] <- mnShortItemNumber
+0029 If FC Item Number is equal to or empty <Blank>
+0030    FC Item Number = "*"
+0031    FC ITM:ShortItemNo(wf) = "0"
+0032 End If
+0033 //
+0034 // Disable Quality Management exit if system is not in use
+0035 //
+0036 Get Environment Value
+        "SY37" -> szDataItem
+        VA frm_cQualityMgmtInstalled_meow <- cModuleExistance
+0037 If VA frm_cQualityMgmtInstalled_meow is not equal to "1"
+0038    Disable Control(HC &Test Results)
+0039 End If
+0040 //
+0041 // SAR 3059868
+0042 // Open batch to control writing of journal entries
+0043 If FC Batch Number is less than or equal to <Zero>
+0044    // SAR 5258781 HH7158425 6/29/2001 Begin
+0045    // Change Batch Control to match new data structure
+0046    Batch Open - Batch Control Processing
+           "O" -> szBatchType
+           FC Batch Number <> mnBatchNumber
+           VA frm_DateBatchJulian_DICJ <> jdDateBatchJulian
+           <Blank> X cPostOutOfBalance
+           "1" -> cSuppressBatchControl
+0047    // SAR 5258781 HH7158425 6/29/2001 End
+0048 End If
+0049 // SAR 3059833  JB5408726 09/29/99 Begin
+0050 // Check to see if the Inbound Transportation module is installed
+0051 Get Environment Value
+        "SY49" -> szDataItem
+        VA frm_cInboundTransportationFlag <- cModuleExistance
+0052 // SAR 3059833  JB5408726 09/29/99 End
+
+-----------------------------------------------------------------------
+     EVENT:  Grid Record is Fetched
+-----------------------------------------------------------------------
+0001 // SAR 5349615 MH6859916 Begin
+0002 // Disabling the Suppress Grid Line function for Match Type and Units at
+0003 // Operation condition due to performance problems in the Web environments.
+0004 // Instead of using Suppress Grid Line,  added Units at Operation and Match
+0005 // Type to the form as form controls, with the appropriate filters.
+0006 // SAR 5349615 End
+0007 //
+0008 // Suppress "STK" lines if processing option set accordingly
+0009 //
+0010 If PO cDisplayInvOper is not equal to "1"
+0011    If BC Update Item Location Quantity (F43092) is equal to "PQOH" Or BC Update Item Location Quantity (F43092) is equal to "QWBO"
+0012       Suppress Grid Line(FC Grid)
+0013    End If
+0014 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Write Grid Line-Before
+-----------------------------------------------------------------------
+0001 // SAR 5180071 Begin
+0002 If BC Address Number (F43121) is equal to "99,999,999.00-"
+0003    F4101 Get Item Master Row by Short Item
+           GC Short Item Number -> mnShortItemNumber
+           GC nd Item Number <- sz2ndItemNumber
+           GC rd Item Number <- sz3rdItemNumber
+0004 End If
+0005 // SAR 5180071
+0006 //
+0007 // SAR 4116959
+0008 // Need to pass in branch from grid record because different
+0009 // branches can have different location separators.
+0010 // Changed from FC to GC
+0011 //
+0012 F4100 Format Location
+        GC Branch/ Plant -> szCostCenter
+        GC Location <- szDisplayFormatLocation
+        BC Location (F43121) -> szFileFormatLocation
+        "1" -> cMode
+0013 //
+0014 // SAR 5524284
+0015 // Assign location to hidden grid field
+0016 //
+0017 GC Location DB Format = BC Location (F43121)
+0018 //
+0019 // Get supplier description - SAR 1982561
+0020 //
+0021 // SAR 2506873 MK 10/05/1998
+0022 // Added code to prevent address validation if type is "WO"
+0023 //
+0024 VA frm_tmpSupplierAddress = BC Address Number (F43121)
+0025 If VA frm_tmpSupplierAddress is not equal to "99,999,999.00-"
+0026    F0101 Edit Address Number
+           GC Supplier -> mnAddressNumber
+           "2" -> cInputSelection
+           GC Supplier Description <- szNameAlpha
+0027 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Variable
+-----------------------------------------------------------------------
+     frm_cQualityMgmtInstalled_meow
+     frm_tmpSupplierAddress
+     frm_BatchStatus_IST
+     frm_DateBatchJulian_DICJ
+     frm_cInboundTransportationFlag
+     frm_ErrorMessage_GK01
+     frm_TareNoLength_PLT
+     frm_TareLevelCheckDigit_CJCD
+     frm_PackNoLength_PAK
+     frm_PackLevelCheckDigit_CJCD
+
+=======================================================================
+     CONTROL:  HYPITEM &Select
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+     evt_szItemNoUnknownFormat_UITM
+     evt_mnF4101LongPtr_GENLNG
+     OPT: Repeat ER for Event
+0001 // SAR 6013427 RJ6951325 6/7/2002 Begin
+0002 VA evt_szItemNoUnknownFormat_UITM = GC 2nd Item Number
+0003 F4101 Get Item Master Row
+        VA evt_szItemNoUnknownFormat_UITM <> szPrimaryItemNumber
+        GC Branch/ Plant -> szBranchPlant
+        "2" -> cSymbolidentifier
+        VA evt_mnF4101LongPtr_GENLNG <- idF4101LongRowPtr
+0004 Memory, Free Ptr To Data Structure
+        VA evt_mnF4101LongPtr_GENLNG -> idGenericLong
+0005 // SAR 5768431 Begin
+0006 Call( App:P43250 , Form: W43250L )
+        GC Or Num -> OrderNumber
+        GC Or Ty -> OrderType
+        GC Or Co -> OrderCompany
+        GC Line Num -> OrderLineNumber
+        GC Branch/ Plant -> BranchPlant
+        GC Ord Suf -> OrderSuffix
+        GC Container I.D. -> ContainerID
+        GC Oper Code -> OperationCode
+        VA evt_szItemNoUnknownFormat_UITM -> ItemNumber
+        FC Batch Number <> mnBatchNumber
+        FC Document Number <- mnDocVoucherInvoiceE
+        PO cToOperControl -> cToOperControl
+        "O" -> szBatchType
+        VA frm_BatchStatus_IST <> cBatchStatus
+        VA frm_DateBatchJulian_DICJ <> jdBatchDate
+        VA frm_cInboundTransportationFlag -> cInboundTransportationFlag
+        GC Pack SSCC -> szSSCCNumberPackLevel
+        GC Tare SSCC -> szSSCCNumberTareLevel
+        GC Shipment Number -> mnShipmentNumber
+0007 // SAR 6013427 RJ6951325 6/7/2002 End
+0008 // SAR 5768431 End
+
+=======================================================================
+     CONTROL:  HYPITEM &Close
+     EVENT:  Post Button Clicked
+-----------------------------------------------------------------------
+0001 F0011 Close Batch
+        FC Batch Number -> mnBatchnumber
+        "O" -> szBatchtype
+        <Blank> -> cChangeBatchStatus
+        "A" -> cOverrideMode
+
+=======================================================================
+     CONTROL:  HYPITEM Move Shown &Rows
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 // SAR 7274021 RJ6951325 8/20/2004
+0002 // Modify call to form W43250L so that all rows displayed on the first from
+0003 // are displayed on the second form.  (Essentially duplicate the filter
+0004 // fields).  This SAR reverses the effects of SAR 7110894
+0005 //
+0006 Call( App:P43250 , Form: W43250L )
+        FC Order Number -> OrderNumber
+        FC Order Type -> OrderType
+        FC Order Company -> OrderCompany
+        FC Business Unit -> BranchPlant
+        FC Container I.D -> ContainerID
+        FC Operation Code -> OperationCode
+        FC Item Number -> ItemNumber
+        FC Batch Number <> mnBatchNumber
+        FC Document Number <- mnDocVoucherInvoiceE
+        "O" -> szBatchType
+        VA frm_BatchStatus_IST <> cBatchStatus
+        VA frm_DateBatchJulian_DICJ <> jdBatchDate
+        VA frm_cInboundTransportationFlag -> cInboundTransportationFlag
+        FC SSCC Number - Pack Level -> szSSCCNumberPackLevel
+        FC SSCC Number - Tare Level -> szSSCCNumberTareLevel
+        FC Shipment No -> mnShipmentNumber
+
+=======================================================================
+     CONTROL:  HYPITEM &Movement
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 Press Button(HC &Select)
+
+=======================================================================
+     CONTROL:  HYPITEM &Disposition
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+     evt_QuantityAtOperation
+     evt_F43092Error
+     evt_F43092Ptr
+0001 If GC OrNum is equal to <Zero> Or GC OrNum is equal to <Null>
+0002    Set Control Error(FC ITM:ShortItemNo(wf), "001H")
+0003 Else
+0004    If GC UpdateBucket is not equal to "PQOH" And GC UpdateBucket is not equal to "QWBO"
+0005       //
+0006       // SAR 2033560
+0007       // Get updated quantity at operation
+0008       //
+0009       F43092 Get Receipt Routing Record
+              GC Or Num -> mnOrderNumber
+              GC Or Ty -> szOrderType
+              GC Or Co -> szOrderCompany
+              GC Ord Suf -> szOrderSuffix
+              GC Line Num -> mnOrderLineNumber
+              GC Receipt Line Number -> mnReceiptLineNumber
+              GC Oper Seq -> mnOperationSequenceFrom
+              GC UM -> szUnitOfMeasureFrom
+              "1" -> mnIndex
+              "8" -> mnNumberOfKeys
+              VA evt_F43092Error <- cErrorCode
+              "1" -> cReturnPointer
+              VA evt_F43092Ptr <- idF43092RowPtr
+0010       If VA evt_F43092Error is not equal to "1"
+0011          F43092 Get Row Information
+                 VA evt_QuantityAtOperation <- mnQuantityAtOperation
+                 VA evt_F43092Ptr -> idF43092RowPointer
+0012          Memory, Free Ptr To Data Structure
+                 VA evt_F43092Ptr -> idGenericLong
+0013          Call( App:P43253 , Form: W43253A )
+                 GC Or Num -> DocumentOrderInvoiceE
+                 GC Or Ty -> OrderType
+                 GC Or Co -> CompanyKeyOrderNo
+                 GC Ord Suf -> OrderSuffix
+                 GC Line Num -> LineNumber
+                 GC Receipt Line Number -> NoOfLinesOnOrder
+                 GC UM -> UnitOfMeasureAsInput
+                 GC Oper Seq -> OperationSequence
+                 GC Branch/ Plant -> Branch/Plant
+                 GC Container I.D. -> ContainerID
+                 GC Supplier -> Supplier
+                 VA evt_QuantityAtOperation -> QuantityAtOperation
+                 GC nd Item Number -> LongItemNumber
+                 GC Short Item Number -> ShortNumberItem
+                 GC Oper Code -> OperationFromCode
+                 GC rd Item Number -> ItemNumber3rd
+                 SL VersionName                     -> P43250Version
+                 FC Batch Number <> mnBatchNumber
+                 FC Document Number <- mnDocVoucherInvoiceE
+                 PO cToOperControl -> cOperToSeq
+                 PO cEmailOriginator -> cEmailBuyer
+                 "O" -> szBatchType
+                 VA frm_BatchStatus_IST <> cBatchStatus
+                 VA frm_DateBatchJulian_DICJ <> jdBatchDate
+                 BC Currency Code - From (F43121) -> szF43121CurrencyCode
+                 GC Route Code -> szNormalRouteCode
+                 BC Unit of Measure - Secondary (F43121) -> szSecondaryUOM
+0014       End If
+0015    End If
+0016 End If
+
+=======================================================================
+     CONTROL:  HYPITEM Routing &Ledger
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 If GC OrNum is equal to <Zero> Or GC OrNum is equal to <Null>
+0002    Set Control Error(FC ITM:ShortItemNo(wf), "001H")
+0003 Else
+0004    //   Call Routing Ledger Inquiry With P43252 Version
+0005    //   From the P43250 Processing Option
+0006    // SAR 5693942 RJ6951325 2/19/02 Begin
+0007    // Receipt Routing Cluster Analysis
+0008    // Pass P43252 the P43250 version and batch information
+0009    Call( App:P43252 , Form: W43252D )
+           "1" -> MatchType
+           GC Or Num -> DocumentOrderInvoiceE
+           GC Or Ty -> OrderType
+           GC Or Co -> CompanyKeyOrderNo
+           GC Line Num -> LineNumber
+           GC Receipt Line Number -> NoOfLinesOnOrder
+           GC Short Item Number -> ShortItemNumber
+           GC nd Item Number -> LongItemNumber
+           GC rd Item Number -> ItemNumber3rd
+           GC Supplier -> Supplier
+           GB Container I.D. -> ContainerID
+           GC Branch/ Plant -> Branch/Plant
+           SL DateToday                       -> GLDate
+           FC Batch Number <> mnBatchNumber
+           "O" -> szBatchType
+           VA frm_DateBatchJulian_DICJ <> jdDateBatch
+           SL VersionName                     -> szP43250Version
+0010 End If
+
+=======================================================================
+     CONTROL:  HYPITEM &Test Results
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+     evt_QualityApplicationCode
+     evt_OperationSequence
+     evt_BubbleSequence
+     evt_F4311Pointer
+     evt_AddressNumberShipTo
+0001 If GC LineNum is not equal to <Zero>
+0002    // Receipt Routing
+0003    VA evt_QualityApplicationCode = "PG"
+0004    // SAR 6103271 Begin
+0005    VA evt_OperationSequence = "0"
+0006    VA evt_BubbleSequence = GC OperSeq
+0007    // SAR 6103271 End
+0008 Else
+0009    // Completions
+0010    VA evt_QualityApplicationCode = "MR"
+0011    // SAR 6103271 Begin
+0012    VA evt_OperationSequence = GC OperSeq
+0013    VA evt_BubbleSequence = "0"
+0014    // SAR 6103271 End
+0015 End If
+0016 //
+0017 // SAR 5330762 RB5602502 07/17/01 Begin
+0018 If GC OrTy is not equal to "WO"
+0019    F4311 Get Purchase Order Detail Row
+           GC Or Num -> mnOrderNumber
+           GC Or Ty -> szOrderType
+           GC Or Co -> szDocumentCompany
+           GC Ord Suf -> szOrderSuffix
+           GC Line Num -> mnOrderLineNumber
+           VA evt_F4311Pointer <> idPointerToF4311DataStructure
+           "1" -> cReturnFlag
+           "1" -> cCallType
+0020    F4311 Get Ship To Address Number
+           VA evt_F4311Pointer <> idF4311Pointer
+           VA evt_AddressNumberShipTo <- mnShipToAddressNumber
+0021    Memory, Free Ptr To Data Structure
+           VA evt_F4311Pointer <> idGenericLong
+0022 Else
+0023    F4801 Get Work Order Data
+           GC Or Num -> mnOrderNumber
+           VA evt_AddressNumberShipTo <- mnAddressNumber
+0024 End If
+0025 // RB5602502 End SAR  5330762 07/17/01
+0026 // SAR 5330762 RB5602502 07/17/01 End
+0027 //
+0028 // SAR 2896171 KH5712189 10/99
+0029 // Pass in receipt date
+0030 //
+0031 // SAR 3532117 Begin
+0032 //
+0033 // Location must be passed in database format, not display.
+0034 // SAR 5524284
+0035 // Pass in saved database value, not the BC value (BC is only for last record
+0036 // fetched)
+0037 //
+0038 Quality Management Test Result Driver
+        "N" -> cPreferenceCheckYN
+        GC Or Num -> mnOrderNumber
+        GC Or Ty -> szOrderType
+        GC Or Co -> szKeyCompanyOrderNo
+        GC Line Num -> mnLineID
+        GC Branch/ Plant -> szBranchPlant
+        GC Short Item Number -> mnShortItem
+        GC Lot/Serial -> szLotNumber
+        GC Location  DB Format [HIDDEN] -> szLocation
+        VA evt_QualityApplicationCode -> szQualityApplicationCode
+        GC Supplier -> mnAddressNumber
+        VA evt_AddressNumberShipTo -> mnAddressNumberShipTo
+        VA evt_OperationSequence -> mnOpSequencePurch
+        VA evt_BubbleSequence -> mnBubbleSequence
+        PO szP3711Version -> szVersion
+        GC Qty At Op -> mnOrderQuantity
+        VA frm_DateBatchJulian_DICJ -> jdShipCompletionDate
+0039 // SAR 3532117 End
+
+=======================================================================
+     CONTROL:  HYPITEM Open &Receipts
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 If GC OrNum is equal to <Zero> Or GC OrNum is equal to <Null>
+0002    Set Control Error(FC ITM:ShortItemNo(wf), "001H")
+0003 Else
+0004    // BEGIN SAR 6627710
+0005    // We need to pass in an empty value for VoucherDocumentNumber because the
+0006    // tool is not clearing it's FI value when we exit the P43214.
+0007    Call( App:P43214 , Form: W43214A )
+           "1" -> MatchType
+           GC Or Num -> DocumentOrderInvoiceE
+           GC Or Ty -> OrderType
+           GC Or Co -> CompanyKeyOrderNo
+           GC Line Num -> LineNumber
+           GC Receipt Line Number -> NoOfLinesOnOrder
+           <Zero> -> VoucherDocumentNumber
+0008    Press Button(HC F&ind)
+0009 End If
+
+=======================================================================
+     CONTROL:  HYPITEM Open &Orders
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 If GC OrNum is equal to <Zero> Or GC OrNum is equal to <Null>
+0002    Set Control Error(FC ITM:ShortItemNo(wf), "001H")
+0003 Else
+0004    Call( App:P4310 , Form: W4310G )
+           GC Or Num -> OrderNumber
+           GC Or Ty -> OrderType
+           GC Or Co -> Order Company
+           GC Supplier -> SupplierNumber
+           GC Branch/ Plant -> BranchPlant
+           GC Short Item Number -> ShortItemNumber
+0005    Press Button(HC F&ind)
+0006 End If
+
+=======================================================================
+     CONTROL:  EDIT Item Number
+     EVENT:  Control Exited/Changed-Inline
+-----------------------------------------------------------------------
+0001 If FC Item Number is equal to or empty <Blank> Or FC Item Number is equal to "*"
+0002    FC Item Number = "*"
+0003    FC ITM:ShortItemNo(wf) = "*"
+0004 Else
+0005    // Used two more data items as compared to the first F4101 call to generate
+0006    // error
+0007    F4101 Get Item Master Row
+           FC Item Number -> szPrimaryItemNumber
+           FC Business Unit -> szBranchPlant
+           FC ITM:ShortItemNo(wf) [HIDDEN] <- mnShortItemNumber
+           <Zero> -> cReturnPtr
+           "1" -> cCallType
+0008 End If
+0009 //
+
+=======================================================================
+     CONTROL:  EDIT SSCC Number - Pack Level
+     EVENT:  Control Exited/Changed-Asynch
+-----------------------------------------------------------------------
+0001 // If  validate function has been entered in the processing option, validate
+0002 // the pack number
+0003 //
+0004 If FC SSCC Number - Pack Level is equal to <Blank>
+0005    //  If User Blanks out the field, clear out the previous error
+0006    Clear Control Error(FC SSCC Number - Pack Level)
+0007 End If
+0008 If PO szSSCCValidationFunctionName is equal to <Blank> Or PO szSSCCValidationFunctionName is equal to <Null>
+0009 Else
+0010    // Validate only if pack level is not equal to <blanks>
+0011    //
+0012    If FC SSCC Number - Pack Level is equal to <Blank> Or FC SSCC Number - Pack Level is equal to <Null>
+0013       // No action
+0014    Else
+0015       // Determine the length of the pack number and then substract one
+0016       VA frm_PackNoLength_PAK = length([FC SSCC Number - Pack Level])
+0017       VA frm_PackNoLength_PAK = [VA frm_PackNoLength_PAK]-1
+0018       //
+0019       // Assign check digit - last number of the 18-digit SSCC number
+0020       VA frm_PackLevelCheckDigit_CJCD = substr([FC SSCC Number - Pack Level],[VA frm_PackNoLength_PAK],1)
+0021       //
+0022       // Use validation function from the processing options
+0023       // Call B4201450 -   cValidateCheckDigit should be '1' to validate SSCC#
+0024       //
+0025       Process SSCC Number
+              "V" -> cGenerateorValidateSSCCNum
+              PO szSSCCValidationFunctionName -> szValidateSSCCFunctionName
+              FC SSCC Number - Pack Level -> szSSCCNumber
+              VA frm_PackLevelCheckDigit_CJCD -> cCheckDigit
+              "1" -> cValidateCheckDigit
+              "1" -> cSuppressErrorMessage
+              VA frm_ErrorMessage_GK01 <- szErrorMessageID
+0026       //
+0027       If VA frm_ErrorMessage_GK01 is not equal to <Blank> And VA frm_ErrorMessage_GK01 is not equal to <Null>
+0028          //    Validation unsuccessful  -- set error message
+0029          Set Control Error(FC SSCC Number - Pack Level, VA frm_ErrorMessage_GK01)
+0030       End If
+0031    End If
+0032    //    Processing Option is Blanks.
+0033 End If
+
+=======================================================================
+     CONTROL:  EDIT SSCC Number - Tare Level
+     EVENT:  Control Exited/Changed-Asynch
+-----------------------------------------------------------------------
+0001 // If  validate function has been entered in the processing option, validate
+0002 // the pack number
+0003 //
+0004 If PO szSSCCValidationFunctionName is equal to <Blank> Or PO szSSCCValidationFunctionName is equal to <Null>
+0005 Else
+0006    //   Validate only if Tare Number is not <blank> or <Null>
+0007    If FC SSCC Number - Tare Level is equal to <Blank> Or FC SSCC Number - Tare Level is equal to <Null>
+0008    Else
+0009       // Determine the length of the Tare Number and then substract one
+0010       VA frm_TareNoLength_PLT = length([FC SSCC Number - Tare Level])
+0011       VA frm_TareNoLength_PLT = [VA frm_TareNoLength_PLT]-1
+0012       //
+0013       // Assign Check Digit - last number of the 18-digit SSCC Number
+0014       VA frm_TareLevelCheckDigit_CJCD = substr([FC SSCC Number - Tare Level],[VA frm_TareNoLength_PLT],1)
+0015       // Use validation function from the processing option.
+0016       // Call B4201450 -   cValidateCheckDigit should be '1' to validate SSCC#
+0017       Process SSCC Number
+              "V" -> cGenerateorValidateSSCCNum
+              PO szSSCCValidationFunctionName -> szValidateSSCCFunctionName
+              FC SSCC Number - Tare Level -> szSSCCNumber
+              VA frm_TareLevelCheckDigit_CJCD -> cCheckDigit
+              "1" -> cValidateCheckDigit
+              "1" -> cSuppressErrorMessage
+              VA frm_ErrorMessage_GK01 <- szErrorMessageID
+0018       //
+0019       If VA frm_ErrorMessage_GK01 is not equal to <Blank> And VA frm_ErrorMessage_GK01 is not equal to <Null>
+0020          // Validation unsuccessful -- set error message
+0021          Set Control Error(FC SSCC Number - Tare Level, VA frm_ErrorMessage_GK01)
+0022       End If
+0023       // Tare Number is not equal to <blank>
+0024    End If
+0025    // Processing option is <blank>
+0026 End If
+
+=======================================================================
+     FORM: Receipt Routing Movement [HEADERLESS DETAIL] (W43250L)
+=======================================================================
+     CONTROL:  FORM
+     EVENT:  Dialog is Initialized
+-----------------------------------------------------------------------
+0001 // Revision Log
+0002 // SAR 5115667 MR7086169 05/23/2001
+0003 // SAR 5289712 DR7158492 07/06/2001
+0004 // SAR 4791452 HK7020856 08/13/2001
+0005 // SAR 5247387 MH6859916 08/23/2001
+0006 // SAR 5888854 BC7158396 04/23/2002
+0007 // SAR 6103271 ST7136592 07/24/2002
+0008 // SAR 6210316 RJ6951325 09/18/2002
+0009 // SAR 6538872 RJ6951325 03/07/2003
+0010 // SAR 6648967 NT7505378 03/07/2003
+0011 // SAR 6818364 NT7505378 09/19/2003
+0012 // SAR 7200187 IC8812290 07/16/2004
+0013 // SAR 7402521 RJ6951325 11/30/2004
+0014 //
+0015 FC Order Number = FI OrderNumber
+0016 FC Order Type = FI OrderType
+0017 FC Order Company = FI OrderCompany
+0018 FC Branch Plant = FI BranchPlant
+0019 FC Item Number = FI ItemNumber
+0020 FC Container I.D = FI ContainerID
+0021 FC Operation Code = FI OperationCode
+0022 FC Line Number = FI OrderLineNumber
+0023 //
+0024 //   ASN Enhancement
+0025 //   Load Additional Filters :
+0026 //
+0027 FC SSCC Number - Tare Level = FI szSSCCNumberTareLevel
+0028 FC SSCC Number - Pack Level = FI szSSCCNumberPackLevel
+0029 FC Shipment Number = FI mnShipmentNumber
+0030 //
+0031 VA frm_BatchNumber = FI mnBatchNumber
+0032 VA frm_BatchType = FI szBatchType
+0033 VA frm_BatchDate = FI jdBatchDate
+0034 VA frm_BatchStatus = FI cBatchStatus
+0035 VA frm_F43092JobNumber = "0"
+0036 VA frm_F43121JobNumber = "0"
+0037 VA frm_F4311JobNumber = "0"
+0038 VA frm_F4111JobNumber = "0"
+0039 VA frm_mnRouteCache_JOBS = "0"
+0040 VA frm_P4312Version = " "
+0041 VA frm_P4310Version = " "
+0042 VA frm_P43214Version = " "
+0043 //
+0044 // Assign default dates and values
+0045 //
+0046 Get Audit Information
+        <Blank> X szUserName
+        VA frm_DateToday <- jdDate
+        VA frm_CurrentTime <- mnTime
+0047 Get Local Computer ID
+        VA frm_ComputerID <- szMachineKey
+0048 FC GL Date = VA frm_DateToday
+0049 FC Receipt Date = FC GL Date
+0050 //
+0051 VA frm_P4312Version = PO szP4312Version
+0052 VA frm_P43214Version = PO szP43214Version
+0053 //
+0054 // Assign '*' to filter fields if they are blank
+0055 //
+0056 If FC Order Number is equal to <Zero> Or FC Order Number is equal to <Null>
+0057    FC Order Number = "*"
+0058 End If
+0059 //
+0060 If FC Order Type is equal to <Blank> Or FC Order Type is equal to <Null>
+0061    FC Order Type = "*"
+0062 End If
+0063 //
+0064 If FC Order Company is equal to <Blank> Or FC Order Company is equal to <Null>
+0065    FC Order Company = "*"
+0066 End If
+0067 //
+0068 If FC Container I.D is equal to <Blank> Or FC Container I.D is equal to <Null>
+0069    FC Container I.D = "*"
+0070 End If
+0071 //
+0072 If FC Branch Plant is equal to <Blank> Or FC Branch Plant is equal to <Null>
+0073    FC Branch Plant = "*"
+0074 End If
+0075 //
+0076 If FC Operation Code is equal to <Blank> Or FC Operation Code is equal to <Null>
+0077    FC Operation Code = "*"
+0078 End If
+0079 //
+0080 If FC Item Number is equal to or empty <Blank> Or FC Item Number is equal to <Null> Or FC Item Number is equal to "*"
+0081    FC Item Number = "*"
+0082    FC Item Number (Short) = "*"
+0083 Else
+0084    // Used two more data items as compared to the first F4101 call to generate
+0085    // error
+0086    F4101 Get Item Master Row
+           FC Item Number -> szPrimaryItemNumber
+           FC Branch Plant -> szBranchPlant
+           FC Item Number (Short) [HIDDEN] <- mnShortItemNumber
+           <Zero> -> cReturnPtr
+           "1" -> cCallType
+0087 End If
+0088 //
+0089 If FC Line Number is equal to <Zero> Or FC Line Number is equal to <Null>
+0090    FC Line Number = "*"
+0091 End If
+0092 //
+0093 If PO szP3711Version is equal to <Blank> Or PO szP3711Version is equal to <Null>
+0094    PO szP3711Version = "ZJDE0001"
+0095 End If
+0096 //
+0097 If PO szP43214Version is equal to <Blank> Or PO szP43214Version is equal to <Null>
+0098    VA frm_P43214Version = "ZJDE0001"
+0099 End If
+0100 //
+0101 If PO szP4312Version is equal to <Blank> Or PO szP4312Version is equal to <Null>
+0102    VA frm_P4312Version = "ZJDE0001"
+0103 End If
+0104 //
+0105 // SAR 3059833 JB5408726 09/29/99 Begin
+0106 If PO szP49655Version is equal to <Blank> Or PO szP49655Version is equal to <Null>
+0107    VA frm_szP49655Version = "ZJDE0001"
+0108 Else
+0109    VA frm_szP49655Version = PO szP49655Version
+0110 End If
+0111 // SAR 3059833 JB5408726 09/29/99 End
+0112 //
+0113 VA frm_szJournalEntryVersion_VERS = " "
+0114 VA frm_mnJEJobNumber_JOBS = " "
+0115 // SAR 4791452 Begin
+0116 If VA frm_BatchNumber is less than or equal to <Zero>
+0117    VA frm_BatchType = "0"
+0118    F0011 Write Batch Header
+           VA frm_BatchType -> szBatchType
+           VA frm_BatchNumber <> mnBatchNumber
+           "1" -> cFLAGSuppressBatchControl
+           VA frm_BatchDate <- jdBatchDate
+0119 End If
+0120 // SAR 4791452 End
+
+-----------------------------------------------------------------------
+     EVENT:  Post Dialog is Initialized
+-----------------------------------------------------------------------
+     evt_cDualUOMExists
+0001 VA frm_cSetFocusOnGridHasRun_EV01 = "0"
+0002 //
+0003 // Disable Quality Management row exit if system is not in use
+0004 //
+0005 Get Environment Value
+        "SY37" -> szDataItem
+        VA frm_cQualityMgmtInstalled_meow <- cModuleExistance
+0006 If VA frm_cQualityMgmtInstalled_meow is not equal to "1"
+0007    Disable Control(HC &Test Results)
+0008 End If
+0009 //
+0010 // Hide grid columns if processing option to show/hide UCC 128 info
+0011 //
+0012 If PO cShowHideUCC128 is equal to "1"
+0013    // '1'  =   Hide UCC 128 information
+0014    Hide Grid Column(FC Grid, GC Tare SSCC)
+0015    Hide Grid Column(FC Grid, GC Pack SSCC)
+0016    //
+0017 Else
+0018    // <blank> (default)  =  Show UCC 128 information
+0019    Show Grid Column(FC Grid, GC Tare SSCC)
+0020    Show Grid Column(FC Grid, GC Pack SSCC)
+0021    //
+0022 End If
+0023 //
+0024 // SAR 3059833 JB5408726 09/29/99 Begin
+0025 VA frm_cInboundTransportationFlag = FI cInboundTransportationFlag
+0026 //
+0027 // SAR 4116959
+0028 // Show MCU in grid if FC MCU = Null
+0029 //
+0030 If FC Branch Plant is equal to <Null>
+0031    Show Grid Column(FC Grid, GC Branch/Plant)
+0032 Else
+0033    Hide Grid Column(FC Grid, GC Branch/Plant)
+0034 End If
+0035 // SAR4924817 RR6042543 03/12/2001 Begin
+0036 // Determine if Dual Unit of Measure is needed
+0037 Vertical Feature
+        "01" -> szVerticalEnhancement
+        VA evt_cDualUOMExists <- cEnhancementExistance
+0038 If VA evt_cDualUOMExists is equal to "1"
+0039    Show Grid Column(FC Grid, GC SecondaryQuantity)
+0040    Show Grid Column(FC Grid, GC SecUOM)
+0041 Else
+0042    Hide Grid Column(FC Grid, GC SecondaryQuantity)
+0043    Hide Grid Column(FC Grid, GC SecUOM)
+0044 End If
+0045 //
+
+-----------------------------------------------------------------------
+     EVENT:  Grid Record is Fetched
+-----------------------------------------------------------------------
+0001 // Suppress grid line if in voucher match or quantity at operation is zero
+0002 //
+0003 If BC Type - Match Record Type (F43121) is not equal to "1" Or BC Units - At Operation (F43092) is equal to <Zero>
+0004    Suppress Grid Line(FC Grid)
+0005 End If
+0006 //
+0007 // Suppress grid line if processing option is on and quantity has been moved
+0008 // on-hand
+0009 //
+0010 If BC Update Item Location Quantity (F43092) is equal to "PQOH" Or BC Update Item Location Quantity (F43092) is equal to "QWBO"
+0011    If PO cDisplayInvOper is not equal to "1"
+0012       Suppress Grid Line(FC Grid)
+0013    End If
+0014 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Write Grid Line-Before
+-----------------------------------------------------------------------
+0001 GC MoveQuantity = GC Quantityat Operation
+0002 GC MoveUM = GC UM
+0003 // SAR 7656432 Begin
+0004 // Copy Primary UOM To Secondary UOM Incase of Work Order
+0005 If GC SecUOM is equal to <Blank>
+0006    GC SecUOM = GC UM
+0007 End If
+0008 // SAR 7656432 End
+0009 // SAR 7533264 - Begin
+0010 F41002 Get Item UoM Conversion
+        GC Branch/ Plant -> szBranchPlant
+        GC UM -> szFromUnitOfMeasure
+        GC Sec UOM -> szToUnitOfMeasure
+        GC Move Quantity -> mnQuantityToConvert
+        GC Secondary Quantity <- mnConversionFactorFrom_to_To
+0011 // SAR 7533264 - End
+0012 //
+0013 // Assign Job Number for Routing Cache
+0014 If VA frm_mnRouteCache_JOBS is equal to <Zero>
+0015    X0010 - Get Next Number
+           "00" -> szSystemCode
+           "4" -> mnNextNumberingIndexNo
+           VA frm_mnRouteCache_JOBS <- mnNextNumber001
+0016 End If
+0017 If BC Update Item Location Quantity (F43092) is not equal to "PQOH" And BC Update Item Location Quantity (F43092) is not equal to "QWBO"
+0018    F43091 Read/Write Routing Operations Cache
+           BC Business Unit (F43121) -> szBranchPlant
+           BC Route - Normal Route Code (F43092) -> szNormalRouteCode
+           BC Sequence Number - Operations (F43092) -> mnOperationSequence
+           GC Move Oper <- szOperationCode
+           VA frm_ComputerID -> szComputerID
+           VA frm_mnRouteCache_JOBS -> mnJobNumber
+           "3" -> cMode
+0019 End If
+0020 // SAR 5180071 Begin
+0021 If GC AddressNumber is equal to "99,999,999.00-"
+0022    F4101 Get Item Master Row by Short Item
+           GC Short Item No -> mnShortItemNumber
+           GC nd Item Number <- sz2ndItemNumber
+           GC rd Item Number <- sz3rdItemNumber
+0023 End If
+0024 // SAR 5180071 End
+0025 //
+0026 // SAR 4116959
+0027 // Need to pass in branch from grid record because different
+0028 // branches can have different location separators.
+0029 // Changed from FC to GC
+0030 //
+0031 F4100 Format Location
+        GC Branch/ Plant -> szCostCenter
+        GC Location <- szDisplayFormatLocation
+        BC Location (F43121) -> szFileFormatLocation
+        "1" -> cMode
+0032 GC LocationDB Format = BC Location (F43121)
+0033 F4108 Get Lot Master Information
+        GC Lot Grd <- szGrade
+        GC Lot Potency <- mnPotency
+        GC Lot Description <- szLotDescription
+        GC Lot Expiration <- jdExpirationDate
+        GC Lot Stat Code <- cLotStatus
+        GC Supplier Lot Number <- szVendorLotNumber
+        GC Short Item No -> mnShortItemNumber
+        GC Branch/ Plant -> szBranchPlant
+        GC Lot/Serial -> szLotNumber
+        GC Memo Lot 1 <- szMemoLot1
+        GC Memo Lot 2 <- szMemoLot2
+0034 //
+0035 // BEGIN SAR 6648967
+0036 If PO szPO_AutoSelect is equal to "1"
+0037    GC OP = "1"
+0038 End If
+0039 // END SAR 6648967
+
+-----------------------------------------------------------------------
+     EVENT:  End Dialog
+-----------------------------------------------------------------------
+     evt_cAddRemoveItemstoLPN_CHAR
+0001 // License Plate Enhancement
+0002 Cache License Plate Transaction Header
+        "1" -> szCacheActionCode
+        "1" -> mnNumberKeys
+        "1" -> nIndex
+        VA frm_F4111JobNumber -> mnJobNumber
+        VA evt_cAddRemoveItemstoLPN_CHAR <- cDisplayAssignItemFlag
+0003 If VA evt_cAddRemoveItemstoLPN_CHAR is equal to "1"
+0004    Call( App:P46L30 , Form: W46L30B )
+           "1" -> cLoadCache
+           VA frm_F4111JobNumber -> mnJobNumber
+0005 End If
+0006 // LPN Enhancement - Terminate the LPN Header Cache
+0007 Cache License Plate Transaction Header
+        "8" -> szCacheActionCode
+        "1" -> mnNumberKeys
+        "1" -> nIndex
+        VA frm_F4111JobNumber -> mnJobNumber
+0008 //
+0009 // SAR 5289712 DR7158492 Begin
+0010 F00095 Remove Business Object Reservation
+        SL UserID                          -> szUserId
+        "F43092" -> szNameObject
+        <Blank> -> szGenericKey
+        "P43250" -> szApplication
+0011 // SAR 5289712 DR7158492 End
+
+-----------------------------------------------------------------------
+     EVENT:  Write Grid Line-After
+-----------------------------------------------------------------------
+     evt_szDocumentNumber_DOC8
+0001 // SAR 5289712 DR7158492 Begin
+0002 //
+0003 If VA frm_cValidateApplication_ERR1 is not equal to "2" And VA frm_cValidateApplication_ERR1 is not equal to <Zero>
+0004    Validate Application Id
+           "P43250" -> szApplicationID_PID
+           VA frm_cValidateApplication_ERR1 <- cValidateApplication_ERR1
+0005    If VA frm_cValidateApplication_ERR1 is not equal to <Zero>
+0006       VA frm_cValidateApplication_ERR1 = "2"
+0007    End If
+0008 End If
+0009 If VA frm_cValidateApplication_ERR1 is equal to <Zero>
+0010    If VA frm_mnRecordReserveOrder_DOCO is not equal to BC Document (Order No, Invoice, etc.) (F43092) Or VA frm_szRecordReserveType_DCTO is not equal to BC Order Type (F43092) Or VA frm_szRecordReserveCompanyKCOO is not equal to BC Order Company (Order Number) (F43092)
+0011       Math Numeric to String, Convert
+              BC Document (Order No, Invoice, etc.) (F43092) -> mnMathNumeric01
+              VA evt_szDocumentNumber_DOC8 <- szVideoConstant30A
+0012       VA frm_szGenericKey_GENKEY = concat([VA evt_szDocumentNumber_DOC8],[BC Order Type (F43092)])
+0013       VA frm_szGenericKey_GENKEY = concat([VA frm_szGenericKey_GENKEY],[BC Order Company (Order Number) (F43092)])
+0014       F00095 Reserve Object
+              "F43092" -> szNameObject
+              SL UserID                          -> szUserId
+              "1" -> cSuppressErrorMessage
+              VA frm_szRecordReserveErrMsg_DTAI <- szErrorMessageID
+              VA frm_szReserversNameAlpha_ALPH <- szReserversNameAlpha
+              VA frm_szGenericKey_GENKEY -> szGenericKey
+              "P43250" -> szApplication
+              VA frm_szReserversApp_PID <- szReserversApplication
+              <Zero> -> cWarningError
+0015    End If
+0016    If VA frm_szRecordReserveErrMsg_DTAI is not equal to <Blank> And VA frm_szRecordReserveErrMsg_DTAI is not equal to <Null>
+0017       Set Object Reservation Text Substitution Error
+              VA frm_szReserversNameAlpha_ALPH -> szReserversNameAlpha
+              VA frm_szGenericKey_GENKEY -> szGenericKey
+              VA frm_szReserversApp_PID -> szApplication
+              <Zero> -> cWarningError
+0018       Set Grid Row Bitmap(FC Grid, <Currently Selected Row>, <X Mark>)
+0019       VA grd_cRecordIsLockedFlag_EV01 = "Y"
+0020       //
+0021       // BEGIN SAR 6648967
+0022       If PO szPO_AutoSelect is equal to "1"
+0023          GC OP = " "
+0024       End If
+0025       // END SAR 6648967
+0026    End If
+0027 End If
+0028 //
+0029 // SAR 5289712 DR7158492 End
+
+-----------------------------------------------------------------------
+     EVENT:  Variable
+-----------------------------------------------------------------------
+     frm_ComputerID
+     frm_BatchDate
+     frm_BatchNumber
+     frm_BatchType
+     frm_CurrencyMode
+     frm_F43092JobNumber
+     frm_F43121JobNumber
+     frm_F4311JobNumber
+     frm_F0911JobNumber
+     frm_LastJELineNumber
+     frm_MovementControl
+     frm_P4312Version
+     frm_P4310Version
+     frm_BatchStatus
+     frm_F4111JobNumber
+     frm_DateToday
+     frm_CurrentTime
+     frm_ReceiptsRoutingOptions
+     frm_LastCacheRecord
+     frm_CacheCursor
+     frm_NewQuantity
+     frm_NewBranch
+     frm_NewLocation
+     frm_NewLot
+     frm_SavedReceiptLineNumber
+     frm_SavedBucketToUpdate
+     frm_SavedLocation
+     frm_SavedLot
+     frm_SavedLocnLotnInCache
+     frm_AccumQuantity
+     frm_MaxGridRows
+     frm_CurrentGridRow
+     frm_RowFound
+     frm_OperationSequence
+     frm_SavedOperationSequence
+     frm_SavedLocationDB
+     frm_SavedShortItem
+     frm_NewLotExpiration
+     frm_NewLotStatus
+     frm_NewSupplierLot
+     frm_NewMemoLot1
+     frm_NewMemoLot2
+     frm_SavedLotDescription
+     frm_SavedLotExpiration
+     frm_SaveLotPotency
+     frm_SavedLotGrade
+     frm_SavedLotStatus
+     frm_SavedSupplierLot
+     frm_SavedMemoLot1
+     frm_SavedMemoLot2
+     frm_OrigOperQuantity
+     frm_mnRouteCache_JOBS
+     frm_SavedBranchPlant
+     frm_P43214Version
+     grd_TriangulationRateFromCurre
+     grd_TriangulationRateToCurrenc
+     grd_CurrencyConversionMethod
+     frm_tmpReceiptDocNum
+     frm_cQualityMgmtInstalled_meow
+     frm_LCJobNumber
+     frm_LCF0911JobNumber
+     frm_tmpSupplierAddress
+     frm_cLocnMovementValid_EV01
+     frm_mnWorkOrderShortItm_ITM
+     frm_szJournalEntryVersion_VERS
+     frm_mnJEJobNumber_JOBS
+     frm_cGLErrorFlag_EV01
+     frm_szSupplierDescription_DESC
+     frm_cCurrencyMode_CRRM
+     frm_cInboundTransportationFlag
+     frm_szP49655Version
+     frm_mnShipmentNumber
+     frm_szPlanningDepot
+     frm_mnLoadNumber
+     frm_mnRoutingStepNumber
+     frm_szLoadType
+     frm_cTrackIntransitInventory
+     frm_szGLClassForTransportation
+     frm_szRelatedOrderNumber
+     frm_szRelatedOrderType
+     frm_szRelatedOrderKeyCompany
+     frm_mnRelatedOrderLineNumber
+     grd_cEditLineHasRunFlag_EV01
+     frm_NewLotGrade
+     frm_NewLotPotency
+     frm_SecondaryQtyToMove
+     frm_cValidateApplication_ERR1
+     frm_mnRecordReserveOrder_DOCO
+     frm_szRecordReserveType_DCTO
+     frm_szRecordReserveCompanyKCOO
+     frm_szGenericKey_GENKEY
+     frm_szReserversNameAlpha_ALPH
+     frm_szReserversApp_PID
+     grd_cRecordIsLockedFlag_EV01
+     frm_szRecordReserveErrMsg_DTAI
+     frm_CmodeProcessing
+     frm_mnRelatedWONum_DOCO
+     frm_szF4801SecondItemNum_LITM
+     frm_mn2ndItemNoLength_INT01
+     frm_szExtractedString_VC06A
+     frm_szP3103UOM_UOM1
+     frm_mnQuantityScrapped_SOCN
+     frm_szOperationStatusCode_OPST
+     grd_cGridDisabledFlag_EV01
+     frm_ReceiptDocType_DCT
+     frm_jdNewLotEffectDate_DLEJ
+     frm_jdNewBasedOnDate_BODJ
+     frm_jdNewOnHandDate_OHDJ
+     frm_jdNewSellByDate_SBDJ
+     frm_jdNewUserLotDate1_U1DJ
+     frm_jdNewUserLotDate2_U2DJ
+     frm_jdNewUserLotDate3_U3DJ
+     frm_jdNewUserLotDate4_U4DJ
+     frm_jdNewUserLotDate5_U5DJ
+     frm_jdNewBestBeforeDate_BBDJ
+     frm_szSavedCurrencyCode_CCDO
+     frm_cRowExitFlag_EV01
+     frm_cSetFocusOnGridHasRun_EV01
+
+=======================================================================
+     CONTROL:  HYPITEM &OK
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 // SAR 4320255 JB5408726 08/01/2000 Begin
+0002 VA frm_CurrentGridRow = "1"
+0003 Get Max Grid Rows(FC Grid, VA frm_MaxGridRows)
+0004 While VA frm_CurrentGridRow is less than or equal to VA frm_MaxGridRows
+0005    Get Grid Row(FC Grid, VA frm_CurrentGridRow)
+0006    If VA grd_cEditLineHasRunFlag_EV01 is not equal to "Y"
+0007       If GC OP is equal to "1"
+0008          If GC BaseCurr is equal to <Blank> Or GC BaseCurr is equal to <Null>
+0009             F0010 Get Company Currency Code
+                    GC Order Co -> szCompany
+                    GC Base Curr [HIDDEN] <- szCurrencyCode
+0010          End If
+0011       End If
+0012       //
+0013       // SAR 4619644 (Agreement Number), 4714211 (Landed Cost JOBS),
+0014       // SAR 5247387 (3101 values), 5378441(return DCT), 6231987(reapply 4714211)
+0015       F43092 Edit Line
+              SL UserID                          -> szUserID
+              VA frm_ComputerID -> szComputerID
+              "EP43250" -> szProgramID
+              GC Order Number -> mnOrderNumber
+              GC Or Ty -> szOrderType
+              GC Order Co -> szOrderCompany
+              GC Ord Suf -> szOrderSuffix
+              GC Line Number -> mnOrderLineNumber
+              GC No of Lines [HIDDEN] -> mnReceiptLineNumber
+              GC Oper Code -> szOperationCodeFrom
+              GC Move Oper -> szOperationCodeTo
+              GC UM -> szUnitOfMeasureFrom
+              SL VersionName                     -> szP43250Version
+              <Blank> -> cReverseDispositionFlag
+              GC Quantity at Operation -> mnQuantityAtOperation
+              GC Move Quantity -> mnQuantityToMove
+              <Zero> -> mnQuantityAdjusted
+              <Zero> -> mnQuantityRejected
+              <Zero> -> mnQuantityReturned
+              <Zero> -> mnQuantityReworked
+              VA frm_mnQuantityScrapped_SOCN -> mnQuantityScrapped
+              <Blank> -> szReasonCodeAdj
+              <Blank> -> szReasonCodeRej
+              <Blank> -> szReasonCodeRet
+              <Blank> -> szReasonCodeRew
+              <Blank> -> szReasonCodeScr
+              <Blank> -> cReplaceDispositionAdj
+              <Blank> -> cReplaceDispositionRej
+              <Blank> -> cReplaceDispositionRet
+              <Blank> -> cReplaceDispositionRew
+              <Blank> -> cReplaceDispositionScr
+              FC Receipt Date -> jdReceiptDate
+              FC GL Date -> jdGLDate
+              VA frm_BatchDate <> jdBatchDate
+              VA frm_BatchNumber <> mnBatchNumber
+              VA frm_BatchStatus <> cBatchStatus
+              VA frm_BatchType <> szBatchType
+              GC Base Curr [HIDDEN] <> szDomesticCurrencyCode
+              VA frm_cCurrencyMode_CRRM <> cCurrencyMode
+              GC Exchange Rate [HIDDEN] -> mnExchangeRate
+              VA frm_F43092JobNumber <> mnF43092Jobnumber
+              VA frm_F43121JobNumber <> mnF43121JobNumber
+              GC F43121Z RecWritten (wf) [HIDDEN] <> cF43121ZRecordWritten
+              VA frm_P4312Version <> szP4312Version
+              GC F4111Z RecWritten (wf) [HIDDEN] <> cF4111ZRecordWritten
+              VA frm_F4311JobNumber <> mnF4311JobNumber
+              GC F4311Z RecWritten (wf) [HIDDEN] <> cF4311ZRecordWritten
+              VA frm_P4310Version <> szP4310Version
+              VA frm_F0911JobNumber <> mnF0911JobNumber
+              VA frm_LastJELineNumber <> mnLastJELineNumber
+              VA frm_MovementControl <> cMovementControl
+              GC Short Item No -> mnShortItemNumber
+              GC TrnToPrimary ConvFactor (wf) [HIDDEN] <> mnTrnToPrimaryCnvFactor
+              GC PurchToPrimary ConvFactor (wf) [HIDDEN] <> mnPrchToPrimaryCnvFactor
+              VA frm_F4111JobNumber <> mnF4111JobNumber
+              GC O P -> cSelectionExit
+              VA frm_DateToday -> jdDateToday
+              VA frm_CurrentTime -> mnTimeOfDay
+              VA frm_P43214Version <> szP43214Version
+              VA grd_TriangulationRateFromCurre <> mnTriangulationRateFrom
+              VA grd_TriangulationRateToCurrenc <> mnTriangulationRateTo
+              VA grd_CurrencyConversionMethod <> cCurrencyConversionMethod
+              VA frm_mnJEJobNumber_JOBS -> mnMvmtDispJEJobNumber
+              BC Agreement Number - Distribution (F43121) -> szAgreementNumber
+              GC Secondary Quantity -> mSecondaryQty
+              GC Sec UOM -> szSecondaryUOM
+              VA frm_LCJobNumber <> mnLandedCJobNo
+              VA frm_CmodeProcessing <- cModeProcessing
+              VA frm_szP3103UOM_UOM1 -> szP3103UOM
+              VA frm_szOperationStatusCode_OPST -> szP3103OpStatusCode
+              VA frm_ReceiptDocType_DCT <- szReceiptDocType
+0016       //
+0017       VA grd_cEditLineHasRunFlag_EV01 = "O"
+0018    End If
+0019    VA frm_CurrentGridRow = [VA frm_CurrentGridRow]+1
+0020 End While
+0021 // SAR 4320255 JB5408726 08/01/2000 End
+0022 //
+0023 // SAR 4714211
+0024 // Landed cost job number can not be initialized here
+0025 VA frm_LCF0911JobNumber = "0"
+0026 //
+0027 // Changes for co/by completions included, shop floor control
+0028 //
+0029 If VA frm_F43121JobNumber is not equal to <Zero>
+0030    If VA frm_BatchType is equal to <Blank> Or VA frm_BatchType is equal to <Null>
+0031       VA frm_BatchType = "O"
+0032    End If
+0033    // SAR 4714211
+0034    // Add Mode Processing as an input parameter
+0035    // SAR 6231897
+0036    // Changed Edit Doc to reapply SAR 4714211
+0037    F43092 Edit Doc
+           VA frm_F43121JobNumber -> mnF43121Jobnumber
+           VA frm_ComputerID -> szComputerID
+           "1" -> cActionCode1
+           "1" -> cProcessEdits
+           "EP43250" -> szProgramId
+           SL UserID                          -> szUserId
+           PO szP4312Version -> szVersion
+           VA frm_LCJobNumber <> mnLandedCostJobNumber
+           FC Order Number -> mnOrderNumber
+           FC Order Type -> szOrderType
+           FC Order Company -> szCompanyKeyOrderNo
+           FC GL Date -> jdGLDate
+           VA frm_BatchNumber -> mnBatchNumber
+           VA frm_BatchType -> szBatchType
+           "D" -> cCurrencyMode
+           GC Base Curr [HIDDEN] -> szCurrencyCode
+           VA frm_LCF0911JobNumber <> mnLCF0911JobNumber
+           "1" -> cReversalOption
+           SL VersionName                     -> szP43250Version
+           GC Line Number -> mnLineNumber
+           VA frm_CmodeProcessing -> cModeProcessing
+0038 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Post Button Clicked
+-----------------------------------------------------------------------
+     evt_CachePtr
+     evt_IdentifierShortItem
+     evt_BranchPlant
+     evt_Error
+     evt_UpdateItemBalanceBucket
+     evt_SerialNumberRequired
+     evt_GoingOnHand
+     evt_RecordSerialNumber
+     evt_P42117Version
+     evt_DisplaySOBack
+     evt_SOQtyOnBackOrder
+     evt_SOFoundPBCK
+     evt_SOCursor
+     evt_SO43121Cursor
+     evt_cNotifyAmountChanges
+     evt_cNotifyQuantityChanges
+     evt_cActivateMaterialsIssue
+     evt_szMaterialsIssueVersion
+     evt_PartsListCacheCursor
+     evt_cDisplayAssignItemtoLPN
+0001 // Do basic Serial Number processing
+0002 //
+0003 Retrieve Purchase Order Receipts Processing Options
+        VA evt_DisplaySOBack <- szPO_DisplaySOBack
+        VA evt_RecordSerialNumber <- szPO_RecordSerialNumber
+        PO szP4312Version -> szP4312Version
+        VA evt_P42117Version X szPO_P42117Vers
+        VA evt_cNotifyAmountChanges <- cPO_NotifyUnitCostChanges
+        VA evt_cNotifyQuantityChanges <- cPO_NotifyQuantityChanges
+        VA evt_cActivateMaterialsIssue <- cPO_ActivateMaterialsIssue
+        VA evt_szMaterialsIssueVersion <- szPO_P31113Version
+0004 If VA evt_RecordSerialNumber is equal to "1"
+0005    VA evt_CachePtr = "0"
+0006    F43121ZGetReceiverCache
+           VA evt_IdentifierShortItem <- mnShortItemNumber
+           VA evt_BranchPlant <- szBranchPlant
+           VA evt_Error <- cError
+           VA evt_UpdateItemBalanceBucket <- szUpdateItemLocnQty
+           VA frm_F43121JobNumber -> mnJobNumber
+           VA frm_ComputerID -> szComputerID
+           VA evt_CachePtr <> idhCursor
+           VA evt_SerialNumberRequired <- cSerialNumberRequired
+0007    While VA evt_Error is not equal to "1" And VA evt_Error is not equal to "2"
+0008       //
+0009       VA evt_GoingOnHand = "0"
+0010       If VA evt_UpdateItemBalanceBucket is equal to or empty <Blank> Or VA evt_UpdateItemBalanceBucket is equal to "PQOH"
+0011          VA evt_GoingOnHand = "1"
+0012       End If
+0013       If VA evt_SerialNumberRequired is equal to "Y" And VA evt_GoingOnHand is equal to "1"
+0014          Call( App:P4220 , Form: W4220C )
+                 VA evt_IdentifierShortItem -> ShortItemNumber
+                 VA evt_BranchPlant -> BranchPlant
+0015       End If
+0016       F43121ZGetReceiverCache
+              VA evt_IdentifierShortItem <- mnShortItemNumber
+              VA evt_BranchPlant <- szBranchPlant
+              VA evt_Error <- cError
+              VA evt_UpdateItemBalanceBucket <- szUpdateItemLocnQty
+              VA frm_F43121JobNumber -> mnJobNumber
+              VA frm_ComputerID -> szComputerID
+              VA evt_CachePtr <> idhCursor
+              VA evt_SerialNumberRequired <- cSerialNumberRequired
+0017    End While
+0018    Memory, Free Ptr To Data Structure
+           VA evt_CachePtr <> idGenericLong
+0019 End If
+0020 //
+0021 F43092 End Doc
+        VA frm_F43092JobNumber -> mnF43092JobNumber
+        VA frm_ComputerID -> szComputerID
+        FC GL Date -> jdGLDate
+        FC Receipt Date -> jdReceiptDate
+        VA frm_F43121JobNumber -> mnF43121JobNumber
+        VA frm_P4312Version -> szP4312Version
+        VA frm_F4311JobNumber -> mnF4311JobNumber
+        VA frm_P4310Version -> szP4310Version
+        VA frm_F0911JobNumber -> mnF0911JobNumber
+        VA frm_F4111JobNumber -> mnF4111JobNumber
+        VA frm_DateToday -> jdDateToday
+        VA frm_CurrentTime -> mnTimeOfDay
+        VA frm_P43214Version -> szP43214Version
+        VA frm_tmpReceiptDocNum <- mnDocVoucherInvoiceE
+        SL VersionName                     -> szP43250Version
+        VA frm_LCJobNumber <> mnLCJobNumber
+        VA frm_LCF0911JobNumber <> mnLCF0911JobNumber
+        VA frm_mnJEJobNumber_JOBS -> mnMvmtDispJEJobNumber
+        VA frm_BatchNumber -> mnBatchNumber
+        VA frm_ReceiptDocType_DCT -> szReceiptDocType
+0022 FI mnDocVoucherInvoiceE = VA frm_tmpReceiptDocNum
+0023 // SAR 3596049 RR6042543  12/21/99  Begin
+0024 // Backorder Release Processing
+0025 //
+0026 If VA evt_DisplaySOBack is equal to "1"
+0027    VA evt_SOCursor = "0"
+0028    VA evt_SO43121Cursor = "0"
+0029    VA evt_SOFoundPBCK = " "
+0030    // Loop thru Receiver Cache and write to Backorder Release Special Cache
+0031    //
+0032    F43121ZGetReceiverCache
+           VA evt_IdentifierShortItem <- mnShortItemNumber
+           VA evt_BranchPlant <- szBranchPlant
+           VA frm_F43121JobNumber -> mnJobNumber
+           VA frm_ComputerID -> szComputerID
+           VA evt_SO43121Cursor <> idhCursor
+0033    While SV Error_Status is not equal to CO ERROR
+0034       Validate If Item and Cost Center has Back Order Quantity
+              VA evt_IdentifierShortItem -> mnIdentifierShortItem
+              VA evt_BranchPlant -> szCostCenter
+              VA evt_SOQtyOnBackOrder <- cQtyTestPBCK
+0035       If VA evt_SOQtyOnBackOrder is equal to "1"
+0036          VA evt_SOFoundPBCK = "1"
+0037          P4312 SO Backorder Release Read Write Cache
+                 VA frm_ComputerID -> szComputerID
+                 VA frm_F43121JobNumber -> mnJobNumber
+                 VA evt_IdentifierShortItem -> mnIdentifierShortItem
+                 VA evt_BranchPlant -> szCostCenter
+                 "1" -> cMode
+0038       End If
+0039       F43121ZGetReceiverCache
+              VA evt_IdentifierShortItem <- mnShortItemNumber
+              VA evt_BranchPlant <- szBranchPlant
+              VA frm_F43121JobNumber -> mnJobNumber
+              VA frm_ComputerID -> szComputerID
+              VA evt_SO43121Cursor <> idhCursor
+0040    End While
+0041    //
+0042    // Now that items are in special cache, call P42117
+0043    //
+0044    If VA evt_SOFoundPBCK is equal to "1"
+0045       P4312 SO Backorder Release Read Write Cache
+              VA frm_ComputerID -> szComputerID
+              VA frm_F43121JobNumber -> mnJobNumber
+              VA evt_IdentifierShortItem <- mnIdentifierShortItem
+              VA evt_BranchPlant <- szCostCenter
+              VA evt_SOCursor <> idSOBackorderCursor
+              "2" -> cMode
+0046       While VA evt_SOCursor is not equal to <Zero>
+0047          Call( App:P42117 , Form: W42117M )
+                 VA evt_BranchPlant -> szBusinessUnit
+                 VA evt_IdentifierShortItem -> mnShortItemNumber
+0048          P4312 SO Backorder Release Read Write Cache
+                 VA frm_ComputerID -> szComputerID
+                 VA frm_F43121JobNumber -> mnJobNumber
+                 VA evt_IdentifierShortItem <- mnIdentifierShortItem
+                 VA evt_BranchPlant <- szCostCenter
+                 VA evt_SOCursor <> idSOBackorderCursor
+                 "2" -> cMode
+0049       End While
+0050    End If
+0051    //
+0052 End If
+0053 //
+0054 Press Button(FC Clear Caches)
+0055 // SAR 1662751 MK5866452 6/3/98 Begin
+0056 // Values returned to calling form for display when items are moved to On-Hand
+0057 // SAR1662751 MK5866452 6/3/98 End
+
+=======================================================================
+     CONTROL:  HYPITEM &Cancel
+     EVENT:  Post Button Clicked
+-----------------------------------------------------------------------
+0001 Press Button(FC Clear Caches)
+
+=======================================================================
+     CONTROL:  HYPITEM &Select Qty To Move
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+     OPT: Repeat ER for Event
+0001 GC OP = "1"
+0002 If VA frm_cSetFocusOnGridHasRun_EV01 is equal to "0"
+0003    Set Control Focus(FC Grid)
+0004 Else
+0005 End If
+
+=======================================================================
+     CONTROL:  HYPITEM &Location Detail
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 // SAR 4116959
+0002 // Need to pass in branch from grid record because different
+0003 // branches can have different location separators.
+0004 // Changed from FC to GC
+0005 //
+0006 // BEGIN SAR 6670646 NT7505378
+0007 // Manufacturing needs the GC Line Number passed in for the value of
+0008 // mnWMSLineNumber on the P4605 call. Currently, we are passing GC
+0009 // WMSLineNumber.
+0010 //
+0011 // BEGIN SAR 6818364
+0012 // Passing the database formatted version of Location. The DB formatted
+0013 // version contains no periods.
+0014 Call( App:P4605 , Form: W4605A )
+        GC Short Item No -> mnShortItemNumber
+        GC Branch/ Plant -> szBranchPlant
+        GC Location DB Format [HIDDEN] -> szLocation
+        GC Lot/Serial -> szLot
+        GC Order Number -> mnOrderNumber
+        GC Or Ty -> szOrderType
+        GC Order Co -> szKeyCompany
+        GC Move Quantity -> mnTransactionQuantity
+        GC UM -> szTransactionUnitOfMeasure
+        VA frm_F4111JobNumber -> mnJobnumberA
+        GC Ord Suf -> szOrderSuffix
+        "1" -> cQuantityValidation
+        "1" -> cAllowNegativeAvailability
+        "1" -> cAllowNegativeOnHand
+        GC Line Number -> mnWMSLineNumber
+        GC Update Bucket [HIDDEN] -> szUpdateItemBalanceBucket
+        GC Secondary Quantity -> mnDualQuantity
+        GC Sec UOM -> szDualUnitOfMeasure
+0015 Clear Grid Cell Error(FC Grid,  <Currently Selected Row>,  <All Columns>)
+0016 VA grd_cEditLineHasRunFlag_EV01 = "N"
+
+=======================================================================
+     CONTROL:  HYPITEM Routing &Ledger
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+     OPT: Repeat ER for Event
+0001 // SAR 5693942 RJ6951325
+0002 // Receipt Routing Cluster Analysis
+0003 Call( App:P43252 , Form: W43252D )
+        "1" -> MatchType
+        GC Order Number -> DocumentOrderInvoiceE
+        GC Or Ty -> OrderType
+        GC Order Co -> CompanyKeyOrderNo
+        GC Line Number -> LineNumber
+        GC No of Lines [HIDDEN] -> NoOfLinesOnOrder
+        GC Short Item No -> ShortItemNumber
+        GC nd Item Number -> LongItemNumber
+        GC rd Item Number -> ItemNumber3rd
+        GC Address Number -> Supplier
+        GC Container I.D. -> ContainerID
+        GC Branch/ Plant -> Branch/Plant
+        FC GL Date -> GLDate
+        FI mnBatchNumber <> mnBatchNumber
+        FI szBatchType -> szBatchType
+        FI jdBatchDate <> jdDateBatch
+        SL VersionName                     -> szP43250Version
+
+=======================================================================
+     CONTROL:  HYPITEM &Test Results
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+     evt_OperationSequence
+     evt_BubbleSequence
+     evt_QualityApplicationCode
+     evt_F4311Pointer
+     evt_AddressNumberShipTo
+0001 If GC LineNumber is not equal to <Zero>
+0002    // Receipt Routing
+0003    VA evt_QualityApplicationCode = "PG"
+0004    // SAR 6103271 Begin
+0005    VA evt_OperationSequence = "0"
+0006    VA evt_BubbleSequence = GC OprSeq
+0007    // SAR 6103271 End
+0008 Else
+0009    // Completions
+0010    VA evt_QualityApplicationCode = "MR"
+0011    // SAR 6103271 Begin
+0012    VA evt_OperationSequence = GC OprSeq
+0013    VA evt_BubbleSequence = "0"
+0014    // SAR 6103271 End
+0015 End If
+0016 // SAR  5330762 RB5602502 07/17/01 Begin
+0017 If GC OrTy is not equal to "WO"
+0018    F4311 Get Purchase Order Detail Row
+           GC Order Number -> mnOrderNumber
+           GC Or Ty -> szOrderType
+           GC Order Co -> szDocumentCompany
+           GC Ord Suf -> szOrderSuffix
+           GC Line Number -> mnOrderLineNumber
+           VA evt_F4311Pointer <> idPointerToF4311DataStructure
+           "1" -> cReturnFlag
+           "1" -> cCallType
+0019    F4311 Get Ship To Address Number
+           VA evt_F4311Pointer <> idF4311Pointer
+           VA evt_AddressNumberShipTo <- mnShipToAddressNumber
+0020    Memory, Free Ptr To Data Structure
+           VA evt_F4311Pointer <> idGenericLong
+0021 Else
+0022    F4801 Get Work Order Data
+           GC Order Number -> mnOrderNumber
+           VA evt_AddressNumberShipTo <- mnAddressNumber
+0023 End If
+0024 // SAR  5330762 RB5602502 07/17/01 End
+0025 //
+0026 // SAR 2896171 KH5712189 10/99
+0027 // Pass in receipt date
+0028 //
+0029 // SAR 3532117 Begin
+0030 // Location must be passed in database format, not display.
+0031 //
+0032 Quality Management Test Result Driver
+        "N" -> cPreferenceCheckYN
+        GC Order Number -> mnOrderNumber
+        GC Or Ty -> szOrderType
+        GC Order Co -> szKeyCompanyOrderNo
+        GC Line Number -> mnLineID
+        GC Branch/ Plant -> szBranchPlant
+        GC Short Item No -> mnShortItem
+        GC Lot/Serial -> szLotNumber
+        GC Location DB Format [HIDDEN] -> szLocation
+        VA evt_QualityApplicationCode -> szQualityApplicationCode
+        GC Address Number -> mnAddressNumber
+        VA evt_AddressNumberShipTo -> mnAddressNumberShipTo
+        VA evt_OperationSequence -> mnOpSequencePurch
+        VA evt_BubbleSequence -> mnBubbleSequence
+        PO szP3711Version -> szVersion
+        GC Quantity at Operation -> mnOrderQuantity
+        FC Receipt Date -> jdShipCompletionDate
+0033 // SAR 3532117 End
+
+=======================================================================
+     CONTROL:  HYPITEM &Multiple Locations
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 If GC UpdateBucket is equal to "PQOH"
+0002    Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC UpdateBucket, "110T")
+0003    VA frm_cLocnMovementValid_EV01 = "0"
+0004 Else
+0005    VA frm_cLocnMovementValid_EV01 = "1"
+0006    //
+0007    // =========================================================
+0008    // SAR 4196178 SR5729159
+0009    // RR6042543 SAR 5678929 01/22/2002
+0010    // Need to delete the caches for the line that is going to be split to
+0011    // prevent double entries. If nothing moved, cause EditLine to execute again
+0012    // by  populating Rec Option with a '1'
+0013    // =========================================================
+0014    //
+0015    If VA grd_cEditLineHasRunFlag_EV01 is equal to "Y"
+0016       F43092 Edit Line
+              SL UserID                          -> szUserID
+              VA frm_ComputerID -> szComputerID
+              "EP43250" -> szProgramID
+              GC Order Number -> mnOrderNumber
+              GC Or Ty -> szOrderType
+              GC Order Co -> szOrderCompany
+              GC Ord Suf -> szOrderSuffix
+              GC Line Number -> mnOrderLineNumber
+              GC No of Lines [HIDDEN] -> mnReceiptLineNumber
+              GC Oper Code -> szOperationCodeFrom
+              GC Move Oper -> szOperationCodeTo
+              GC UM -> szUnitOfMeasureFrom
+              SL VersionName                     -> szP43250Version
+              <Blank> -> cReverseDispositionFlag
+              GC Quantity at Operation -> mnQuantityAtOperation
+              GC Move Quantity -> mnQuantityToMove
+              <Zero> -> mnQuantityAdjusted
+              <Zero> -> mnQuantityRejected
+              <Zero> -> mnQuantityReturned
+              <Zero> -> mnQuantityReworked
+              VA frm_mnQuantityScrapped_SOCN -> mnQuantityScrapped
+              <Blank> -> szReasonCodeAdj
+              <Blank> -> szReasonCodeRej
+              <Blank> -> szReasonCodeRet
+              <Blank> -> szReasonCodeRew
+              <Blank> -> szReasonCodeScr
+              <Blank> -> cReplaceDispositionAdj
+              <Blank> -> cReplaceDispositionRej
+              <Blank> -> cReplaceDispositionRet
+              <Blank> -> cReplaceDispositionRew
+              <Blank> -> cReplaceDispositionScr
+              FC Receipt Date -> jdReceiptDate
+              FC GL Date -> jdGLDate
+              VA frm_BatchDate <> jdBatchDate
+              VA frm_BatchNumber <> mnBatchNumber
+              VA frm_BatchStatus <> cBatchStatus
+              VA frm_BatchType <> szBatchType
+              GC Base Curr [HIDDEN] <> szDomesticCurrencyCode
+              VA frm_cCurrencyMode_CRRM <> cCurrencyMode
+              GC Exchange Rate [HIDDEN] -> mnExchangeRate
+              VA frm_F43092JobNumber <> mnF43092Jobnumber
+              VA frm_F43121JobNumber <> mnF43121JobNumber
+              GC F43121Z RecWritten (wf) [HIDDEN] <> cF43121ZRecordWritten
+              VA frm_P4312Version <> szP4312Version
+              GC F4111Z RecWritten (wf) [HIDDEN] <> cF4111ZRecordWritten
+              VA frm_F4311JobNumber <> mnF4311JobNumber
+              GC F4311Z RecWritten (wf) [HIDDEN] <> cF4311ZRecordWritten
+              VA frm_P4310Version <> szP4310Version
+              VA frm_F0911JobNumber <> mnF0911JobNumber
+              VA frm_LastJELineNumber <> mnLastJELineNumber
+              VA frm_MovementControl <> cMovementControl
+              GC Short Item No -> mnShortItemNumber
+              GC TrnToPrimary ConvFactor (wf) [HIDDEN] <> mnTrnToPrimaryCnvFactor
+              GC PurchToPrimary ConvFactor (wf) [HIDDEN] <> mnPrchToPrimaryCnvFactor
+              VA frm_F4111JobNumber <> mnF4111JobNumber
+              <Blank> -> cSelectionExit
+              VA frm_DateToday -> jdDateToday
+              VA frm_CurrentTime -> mnTimeOfDay
+              VA frm_P43214Version <> szP43214Version
+              VA grd_TriangulationRateFromCurre <> mnTriangulationRateFrom
+              VA grd_TriangulationRateToCurrenc <> mnTriangulationRateTo
+              VA grd_CurrencyConversionMethod <> cCurrencyConversionMethod
+              VA frm_mnJEJobNumber_JOBS -> mnMvmtDispJEJobNumber
+              BC Agreement Number - Distribution (F43121) -> szAgreementNumber
+              GC Secondary Quantity -> mSecondaryQty
+              GC Sec UOM -> szSecondaryUOM
+              VA frm_szP3103UOM_UOM1 -> szP3103UOM
+              VA frm_szOperationStatusCode_OPST -> szP3103OpStatusCode
+0017       GC F43121ZRecWritten (wf) = "0"
+0018       GC F4111ZRecWritten (wf) = "0"
+0019       GC F4311ZRecWritten (wf) = "0"
+0020    End If
+0021    //
+0022    // Save off current receipt routing option
+0023    //
+0024    If GC OP is not equal to "4"
+0025       VA frm_ReceiptsRoutingOptions = GC OP
+0026    Else
+0027       GC OP = " "
+0028    End If
+0029    //
+0030    // =========================================================
+0031    // Call Multiple Locations window
+0032    //
+0033    VA frm_LastCacheRecord = " "
+0034    // SAR 2853074 - Pass in Receipt Date instead of LotExpDate.
+0035    Call( App:P42053 , Form: W42053B )
+           GC Short Item No -> IdentifierShortItem
+           GC Branch/ Plant -> CostCenter
+           GC Location DB Format [HIDDEN] -> Location
+           GC Lot/Serial -> Lot
+           GC Line Number -> Linenumber
+           GC Move Quantity -> Unitsquantityshipped
+           FC Receipt Date -> Datetransactionjulian
+           "P" -> CallingApplication
+           "1" -> PreventOverShipment
+           GC Memo Lot 1 -> szMemoLotField1
+           GC Memo Lot 2 -> szMemoLotField2
+           GC Supplier Lot Number -> szVendorLotNumber
+           GC Move UM -> szUnitOfMeasureAsInput
+0036    // =========================================================
+0037    //
+0038    // Get the first record from the multiple location cache
+0039    //
+0040    VA frm_SavedReceiptLineNumber = GC No ofLines
+0041    VA frm_SavedBranchPlant = GC Branch/Plant
+0042    VA frm_SavedLocation = GC Location
+0043    VA frm_SavedLocationDB = GC LocationDB Format
+0044    VA frm_SavedLot = GC Lot/Serial
+0045    VA frm_SavedLotDescription = GC LotDescription
+0046    VA frm_SavedLotExpiration = GC LotExpiration
+0047    VA frm_SaveLotPotency = GC LotPotency
+0048    VA frm_SavedLotGrade = VA frm_SavedLotGrade
+0049    VA frm_SavedLotStatus = GC Lot StatCode
+0050    VA frm_SavedSupplierLot = GC Supplier LotNumber
+0051    VA frm_SavedMemoLot1 = GC Memo Lot 1
+0052    VA frm_SavedMemoLot2 = GC Memo Lot 2
+0053    VA frm_SavedOperationSequence = GC OprSeq
+0054    VA frm_OrigOperQuantity = GC Quantityat Operation
+0055    VA frm_SavedShortItem = GC ShortItem No
+0056    VA frm_NewQuantity = "0"
+0057    VA frm_SecondaryQtyToMove = "0"
+0058    //
+0059    // Fetch the first record from cache with non-zero quantity
+0060    //
+0061    VA frm_CacheCursor = "0"
+0062    While VA frm_NewQuantity is equal to <Zero>
+0063       //
+0064       // =========================================================
+0065       // SAR 4478280
+0066       // Created variable NewLotGrade and passed in szLotGrade from Cache, Get Memory.
+0067       // Update  Lot Master with new lot grade before calling F4108 Get Lot Master
+0068       // Information.
+0069       // =========================================================
+0070       //
+0071       // SAR 4715046
+0072       // Update lot master with potency and lot status code.
+0073       Cache, Get Memory
+              VA frm_NewBranch <- szBranchPlant
+              VA frm_NewLocation <- szLocation
+              VA frm_NewLot <- szLotNumber
+              VA frm_LastCacheRecord <> cLastRecordReadFlag
+              VA frm_NewQuantity <- mnQuantity
+              VA frm_NewMemoLot1 <- szMemoLot1
+              VA frm_NewMemoLot2 <- szMemoLot2
+              VA frm_CacheCursor <> idCacheCursor
+              VA frm_NewSupplierLot <- szVendorLotNumber
+              VA frm_NewLotExpiration <- jdDateLayerExpiration
+              VA frm_NewLotStatus <- cLotStatusCode
+              VA frm_NewLotPotency <- mnLotPotency
+              VA frm_NewLotGrade <- szLotGrade
+              VA frm_SecondaryQtyToMove <- mnDualQuantity
+              VA frm_jdNewBasedOnDate_BODJ <- jdBasedOnDate
+              VA frm_jdNewLotEffectDate_DLEJ <- jdLotEffectivityDate
+              VA frm_jdNewOnHandDate_OHDJ <- jdOnHandDate
+              VA frm_jdNewSellByDate_SBDJ <- jdSellByDate
+              VA frm_jdNewBestBeforeDate_BBDJ <- jdBestBeforeDate
+              VA frm_jdNewUserLotDate1_U1DJ <- jdUserLotDate1
+              VA frm_jdNewUserLotDate2_U2DJ <- jdUserLotDate2
+              VA frm_jdNewUserLotDate3_U3DJ <- jdUserLotDate3
+              VA frm_jdNewUserLotDate4_U4DJ <- jdUserLotDate4
+              VA frm_jdNewUserLotDate5_U5DJ <- jdUserLotDate5
+0074       If VA frm_NewLot is not equal to <Blank>
+0075          // =========================================================
+0076          // SAR 6538872 RJ6951325 3/7/03 Begin
+0077          // Populate 3rd Item Number in Lot Master
+0078          // RR6042543 - SAR# 6579287 - 03/26/2003
+0079          // Get Lot Description from Item Master if not populated already
+0080          // =========================================================
+0081          If GC LotDescription is equal to <Blank>
+0082             F4101 Get Item Master Information
+                    GC nd Item Number -> szSecondItemNumber
+                    GC Lot Description <- szDescription
+0083          End If
+0084          //
+0085          // Sar 6890067 Begin
+0086          // Fix >1 detail line
+0087          F4108 Update Lot Master
+                 VA frm_NewLot -> szLotNumber
+                 GC Lot Description -> szLotDescription
+                 GC Short Item No -> mnShortItemNumber
+                 GC nd Item Number -> szSecondItemNumber
+                 GC rd Item Number -> szThirdItemNumber
+                 GC Address Number -> mnSupplierNumber
+                 GC Order Number -> mnOrderNumber
+                 GC Or Ty -> szOrderType
+                 "2" -> cMode
+                 VA frm_NewBranch -> szBranch
+                 VA frm_NewLotStatus -> cLotStatus
+                 VA frm_NewLotGrade -> szLotGrade
+                 VA frm_NewLotPotency -> mnLotPotency
+                 VA frm_jdNewBasedOnDate_BODJ -> jdBasedOnDate
+                 VA frm_jdNewOnHandDate_OHDJ -> jdOnHandDate
+                 VA frm_jdNewLotEffectDate_DLEJ -> jdLotEffectivityDate
+                 VA frm_jdNewSellByDate_SBDJ -> jdSellByDate
+                 VA frm_jdNewBestBeforeDate_BBDJ -> jdBestBeforeDate
+                 VA frm_jdNewUserLotDate1_U1DJ -> jdUserLotDate1
+                 VA frm_jdNewUserLotDate2_U2DJ -> jdUserLotDate2
+                 VA frm_jdNewUserLotDate3_U3DJ -> jdUserLotDate3
+                 VA frm_jdNewUserLotDate4_U4DJ -> jdUserLotDate4
+                 VA frm_jdNewUserLotDate5_U5DJ -> jdUserLotDate5
+0088          // Sar 6890067 End
+0089          //
+0090       End If
+0091       //
+0092       If VA frm_LastCacheRecord is equal to "1"
+0093          VA frm_NewQuantity = "1"
+0094       End If
+0095    End While
+0096    // =========================================================
+0097    //
+0098    // Format values
+0099    //
+0100    VA frm_SavedLocnLotnInCache = "0"
+0101    VA frm_AccumQuantity = "0"
+0102    If VA frm_LastCacheRecord is not equal to "1"
+0103       //
+0104       // Add new grid line for cache record
+0105       //
+0106       GC Branch/Plant = VA frm_NewBranch
+0107       F4100 Format Location
+              GC Branch/ Plant -> szCostCenter
+              GC Location <- szDisplayFormatLocation
+              VA frm_NewLocation -> szFileFormatLocation
+              "1" -> cMode
+0108       GC OP = "1"
+0109       GC LocationDB Format = VA frm_NewLocation
+0110       GC Lot/Serial = VA frm_NewLot
+0111       GC LotExpiration = VA frm_NewLotExpiration
+0112       F4108 Get Lot Master Information
+              GC Lot Grd <- szGrade
+              GC Lot Potency <- mnPotency
+              GC Lot Description <- szLotDescription
+              VA frm_NewLotStatus <- cLotStatus
+              GC Short Item No -> mnShortItemNumber
+              GC Branch/ Plant -> szBranchPlant
+              GC Lot/Serial -> szLotNumber
+0113       GC Lot StatCode = VA frm_NewLotStatus
+0114       GC Supplier LotNumber = VA frm_NewSupplierLot
+0115       GC Memo Lot 1 = VA frm_NewMemoLot1
+0116       GC Memo Lot 2 = VA frm_NewMemoLot2
+0117       GC MoveQuantity = VA frm_NewQuantity
+0118       GC SecondaryQuantity = VA frm_SecondaryQtyToMove
+0119       GC Quantityat Operation = VA frm_NewQuantity
+0120       VA frm_AccumQuantity = [VA frm_AccumQuantity]+[VA frm_NewQuantity]
+0121       If GC Location is equal to VA frm_SavedLocation And GC Lot/Serial is equal to VA frm_SavedLot And GC Branch/Plant is equal to VA frm_SavedBranchPlant
+0122          VA frm_SavedLocnLotnInCache = "1"
+0123          GC No ofLines = VA frm_SavedReceiptLineNumber
+0124       Else
+0125          GC No ofLines = "0"
+0126       End If
+0127       // SAR 4363597 CM5847956 7/11/2000
+0128       // Default lot description from Item Master.
+0129       If GC LotDescription is equal to <Blank> And GC Lot/Serial is not equal to <Blank> And GC Lot/Serial is not equal to <Null>
+0130          F4101 Get Item Master Information
+                 GC nd Item Number -> szSecondItemNumber
+                 GC Lot Description <- szDescription
+0131       End If
+0132       //
+0133       // SAR 4116959
+0134       // Need to pass GC MCU, not FC MCU because FC might be null
+0135       //
+0136       // SAR 5888854
+0137       // Passed in Saved MCU instead of FC MCU
+0138       F43121 Update Line Split In Receipt Routing
+              "1" -> cMatchType
+              GC Order Number -> mnOrderNumber
+              GC Or Ty -> szOrderType
+              GC Order Co -> szOrderCompany
+              GC Ord Suf -> szOrderSuffix
+              GC Line Number -> mnLineNumber
+              VA frm_SavedReceiptLineNumber -> mnExistingReceiptLineNumber
+              VA frm_SavedBranchPlant -> szCurrentBranchPlant
+              GC Opr Seq [HIDDEN] -> mnOperationSequence
+              GC Short Item No -> mnShortItemNumber
+              GC Location DB Format [HIDDEN] -> szLocation
+              GC Lot/Serial -> szLot
+              GC Move Quantity -> mnMovementQuantity
+              GC Update Bucket [HIDDEN] -> szUpdateItemBalanceBucket
+              "EP43250" -> szProgramId
+              GC No of Lines [HIDDEN] <> mnNewReceiptLineNumber
+              GC Branch/ Plant -> szNewBranchPlant
+              GC Document Number [HIDDEN] -> mnDocumentNumber
+              GC Lot Potency -> mnLotPotency
+              GC Lot Grd -> szLotGrade
+              GC Lot Stat Code -> cLotStatusCode
+              GC Supplier Lot Number -> szSupplierLotNumber
+              GC Memo Lot 1 -> szMemoLotField1
+              GC Memo Lot 2 -> szMemoLotField2
+              GC Move UM -> szMoveUnitOfMeasure
+              GC Lot Description -> szLotDescription
+              GC Lot Expiration -> jdLotExpiration
+              GC Address Number -> mnSupplierNumber
+              VA frm_jdNewBestBeforeDate_BBDJ -> jdBestBeforeDate
+              VA frm_jdNewSellByDate_SBDJ -> jdSellByDate
+              VA frm_jdNewBasedOnDate_BODJ -> jdBasedOnDate
+              VA frm_jdNewOnHandDate_OHDJ -> jdOnHandDate
+              VA frm_jdNewLotEffectDate_DLEJ -> jdLotEffectivityDate
+              VA frm_jdNewUserLotDate1_U1DJ -> jdUserLotDate1
+              VA frm_jdNewUserLotDate2_U2DJ -> jdUserLotDate2
+              VA frm_jdNewUserLotDate3_U3DJ -> jdUserLotDate3
+              VA frm_jdNewUserLotDate4_U4DJ -> jdUserLotDate4
+              VA frm_jdNewUserLotDate5_U5DJ -> jdUserLotDate5
+0139       //
+0140    Else
+0141       VA frm_NewQuantity = "0"
+0142       VA frm_SecondaryQtyToMove = "0"
+0143       GC OP = VA frm_ReceiptsRoutingOptions
+0144    End If
+0145 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Post Button Clicked
+-----------------------------------------------------------------------
+     evt_NewUpdateQty_UORG
+0001 If VA frm_cLocnMovementValid_EV01 is equal to "1"
+0002    If VA frm_LastCacheRecord is equal to "1"
+0003       Stop Processing
+0004    End If
+0005    //
+0006    // Read records from cache
+0007    //
+0008    // 6344007 -  Retrieve multiple lot dates
+0009    Cache, Get Memory
+           VA frm_NewBranch <- szBranchPlant
+           VA frm_NewLocation <- szLocation
+           VA frm_NewLot <- szLotNumber
+           VA frm_LastCacheRecord <> cLastRecordReadFlag
+           VA frm_NewQuantity <- mnQuantity
+           VA frm_NewMemoLot1 <- szMemoLot1
+           VA frm_NewMemoLot2 <- szMemoLot2
+           VA frm_CacheCursor <> idCacheCursor
+           VA frm_NewSupplierLot <- szVendorLotNumber
+           VA frm_NewLotExpiration <- jdDateLayerExpiration
+           VA frm_NewLotStatus <- cLotStatusCode
+           VA frm_SecondaryQtyToMove <- mnDualQuantity
+           VA frm_jdNewBasedOnDate_BODJ <- jdBasedOnDate
+           VA frm_jdNewLotEffectDate_DLEJ <- jdLotEffectivityDate
+           VA frm_jdNewOnHandDate_OHDJ <- jdOnHandDate
+           VA frm_jdNewSellByDate_SBDJ <- jdSellByDate
+           VA frm_jdNewBestBeforeDate_BBDJ <- jdBestBeforeDate
+           VA frm_jdNewUserLotDate1_U1DJ <- jdUserLotDate1
+           VA frm_jdNewUserLotDate2_U2DJ <- jdUserLotDate2
+           VA frm_jdNewUserLotDate3_U3DJ <- jdUserLotDate3
+           VA frm_jdNewUserLotDate4_U4DJ <- jdUserLotDate4
+           VA frm_jdNewUserLotDate5_U5DJ <- jdUserLotDate5
+0010    While VA frm_LastCacheRecord is not equal to "1"
+0011       If VA frm_NewQuantity is not equal to <Zero> And VA frm_NewQuantity is not equal to <Null> And VA frm_LastCacheRecord is not equal to "1"
+0012          //
+0013          // Add new grid line for cache record
+0014          //
+0015          Copy Grid Row To Grid Buffer(FC Grid, <Currently Selected Row>)
+0016          VA frm_cRowExitFlag_EV01 = "Y"
+0017          Insert Grid Buffer Row(FC Grid, <After Current Row>, <Yes>, <No>, <Yes>, <No>, <No>)
+0018          VA frm_cRowExitFlag_EV01 = "N"
+0019          GC Branch/Plant = VA frm_NewBranch
+0020          F4100 Format Location
+                 GC Branch/ Plant -> szCostCenter
+                 GC Location <- szDisplayFormatLocation
+                 VA frm_NewLocation -> szFileFormatLocation
+                 "1" -> cMode
+0021          GC OP = "1"
+0022          GC LocationDB Format = VA frm_NewLocation
+0023          GC Lot/Serial = VA frm_NewLot
+0024          GC LotExpiration = VA frm_NewLotExpiration
+0025          F4108 Get Lot Master Information
+                 GC Lot Grd <- szGrade
+                 GC Lot Potency <- mnPotency
+                 GC Lot Description <- szLotDescription
+                 GC Short Item No -> mnShortItemNumber
+                 GC Branch/ Plant -> szBranchPlant
+                 GC Lot/Serial -> szLotNumber
+0026          GC Lot StatCode = VA frm_NewLotStatus
+0027          GC Supplier LotNumber = VA frm_NewSupplierLot
+0028          GC Memo Lot 1 = VA frm_NewMemoLot1
+0029          GC Memo Lot 2 = VA frm_NewMemoLot2
+0030          GC MoveQuantity = VA frm_NewQuantity
+0031          GC SecondaryQuantity = VA frm_SecondaryQtyToMove
+0032          GC Quantityat Operation = VA frm_NewQuantity
+0033          VA frm_AccumQuantity = [VA frm_AccumQuantity]+[VA frm_NewQuantity]
+0034          // ============================================================
+0035          // SAR# 7321131 - SavedLocnLot condition added below because, if the line is
+0036          // split into same saved location multiple times, we need to create new lines
+0037          // for each of those (or even better accumulate. But we don't have this code
+0038          // designed to do it yet). So pass in "0" to get a new line number
+0039          // ============================================================
+0040          If GC Location is equal to VA frm_SavedLocation And GC Lot/Serial is equal to VA frm_SavedLot And GC Branch/Plant is equal to VA frm_SavedBranchPlant And VA frm_SavedLocnLotnInCache is not equal to "1"
+0041             VA frm_SavedLocnLotnInCache = "1"
+0042             GC No ofLines = VA frm_SavedReceiptLineNumber
+0043          Else
+0044             GC No ofLines = "0"
+0045          End If
+0046          // SAR 4363597 CM5847956  7/11/2000 Begin
+0047          // Default lot description from Item Master.
+0048          If GC LotDescription is equal to <Blank> And GC Lot/Serial is not equal to <Blank> And GC Lot/Serial is not equal to <Null>
+0049             F4101 Get Item Master Information
+                    GC nd Item Number -> szSecondItemNumber
+                    GC Lot Description <- szDescription
+0050          End If
+0051          //
+0052          // SAR 4116959 - Need to pass GC MCU Not FC MCU because FC might be null
+0053          // SAR 5888854 - Passed in Saved MCU instead of FC MCU
+0054          // 6344007 - Passed in the lot dates from the multiple location window
+0055          F43121 Update Line Split In Receipt Routing
+                 "1" -> cMatchType
+                 GC Order Number -> mnOrderNumber
+                 GC Or Ty -> szOrderType
+                 GC Order Co -> szOrderCompany
+                 GC Ord Suf -> szOrderSuffix
+                 GC Line Number -> mnLineNumber
+                 VA frm_SavedReceiptLineNumber -> mnExistingReceiptLineNumber
+                 VA frm_SavedBranchPlant -> szCurrentBranchPlant
+                 GC Opr Seq [HIDDEN] -> mnOperationSequence
+                 GC Short Item No -> mnShortItemNumber
+                 GC Location DB Format [HIDDEN] -> szLocation
+                 GC Lot/Serial -> szLot
+                 GC Move Quantity -> mnMovementQuantity
+                 GC Update Bucket [HIDDEN] -> szUpdateItemBalanceBucket
+                 "EP43250" -> szProgramId
+                 GC No of Lines [HIDDEN] <> mnNewReceiptLineNumber
+                 GC Branch/ Plant -> szNewBranchPlant
+                 GC Document Number [HIDDEN] -> mnDocumentNumber
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grd -> szLotGrade
+                 GC Lot Stat Code -> cLotStatusCode
+                 GC Supplier Lot Number -> szSupplierLotNumber
+                 GC Memo Lot 1 -> szMemoLotField1
+                 GC Memo Lot 2 -> szMemoLotField2
+                 GC Move UM -> szMoveUnitOfMeasure
+                 GC Lot Description -> szLotDescription
+                 GC Lot Expiration -> jdLotExpiration
+                 GC Address Number -> mnSupplierNumber
+                 VA frm_jdNewBestBeforeDate_BBDJ -> jdBestBeforeDate
+                 VA frm_jdNewSellByDate_SBDJ -> jdSellByDate
+                 VA frm_jdNewBasedOnDate_BODJ -> jdBasedOnDate
+                 VA frm_jdNewOnHandDate_OHDJ -> jdOnHandDate
+                 VA frm_jdNewLotEffectDate_DLEJ -> jdLotEffectivityDate
+                 VA frm_jdNewUserLotDate1_U1DJ -> jdUserLotDate1
+                 VA frm_jdNewUserLotDate2_U2DJ -> jdUserLotDate2
+                 VA frm_jdNewUserLotDate3_U3DJ -> jdUserLotDate3
+                 VA frm_jdNewUserLotDate4_U4DJ -> jdUserLotDate4
+                 VA frm_jdNewUserLotDate5_U5DJ -> jdUserLotDate5
+0056       End If
+0057       // 6344007 -  Retrieve multiple lot dates
+0058       Cache, Get Memory
+              VA frm_NewBranch <- szBranchPlant
+              VA frm_NewLocation <- szLocation
+              VA frm_NewLot <- szLotNumber
+              VA frm_LastCacheRecord <> cLastRecordReadFlag
+              VA frm_NewQuantity <- mnQuantity
+              VA frm_NewMemoLot1 <- szMemoLot1
+              VA frm_NewMemoLot2 <- szMemoLot2
+              VA frm_CacheCursor <> idCacheCursor
+              VA frm_NewSupplierLot <- szVendorLotNumber
+              VA frm_NewLotExpiration <- jdDateLayerExpiration
+              VA frm_NewLotStatus <- cLotStatusCode
+              VA frm_SecondaryQtyToMove <- mnDualQuantity
+              VA frm_jdNewBasedOnDate_BODJ <- jdBasedOnDate
+              VA frm_jdNewLotEffectDate_DLEJ <- jdLotEffectivityDate
+              VA frm_jdNewOnHandDate_OHDJ <- jdOnHandDate
+              VA frm_jdNewSellByDate_SBDJ <- jdSellByDate
+              VA frm_jdNewBestBeforeDate_BBDJ <- jdBestBeforeDate
+              VA frm_jdNewUserLotDate1_U1DJ <- jdUserLotDate1
+              VA frm_jdNewUserLotDate2_U2DJ <- jdUserLotDate2
+              VA frm_jdNewUserLotDate3_U3DJ <- jdUserLotDate3
+              VA frm_jdNewUserLotDate4_U4DJ <- jdUserLotDate4
+              VA frm_jdNewUserLotDate5_U5DJ <- jdUserLotDate5
+0059    End While
+0060    //
+0061    // SAR 6210316 RJ6951325 9/18/2002
+0062    // If not all the quantity was assigned through the multi-location window,
+0063    // write a grid row with Option = blank since user is specifying not to
+0064    // process this quantity
+0065    //
+0066    If VA frm_AccumQuantity is less than VA frm_OrigOperQuantity
+0067       Copy Grid Row To Grid Buffer(FC Grid, <Currently Selected Row>)
+0068       //
+0069       // SAR# 7384895  MS8808611 11/10/04  Begin
+0070       // This assignment statment has been moved here. This should be done before
+0071       // "Insert Grid Buffer row", otherwise it would create errors for a particular
+0072       // scenario mentioned in this SAR
+0073       GC OP = "  "
+0074       // SAR# 7384895  MS8808611 11/09/04  End
+0075       //
+0076       // SAR 7402521 RJ6951325 11/30/2004 Begin
+0077       VA frm_cRowExitFlag_EV01 = "Y"
+0078       Insert Grid Buffer Row(FC Grid, <After Current Row>, <Yes>, <No>, <Yes>, <No>, <No>)
+0079       VA frm_cRowExitFlag_EV01 = "N"
+0080       // SAR 7402521 RJ6951325 11/30/2004 End
+0081       //
+0082       GC MoveQuantity = [VA frm_OrigOperQuantity]-[VA frm_AccumQuantity]
+0083       //
+0084       // SAR 5199135 RR6042543  05/30/2001
+0085       // Secondary Quantity is zero here because it is needed only when
+0086       // moving to stock. If only part of it is moved to different locations,
+0087       // when the user tries to move all the lines to stock, they will need to
+0088       // enter the secondary quantity for those blank SecQty fields
+0089       //
+0090       GC SecondaryQuantity = "0"
+0091       //
+0092       //
+0093       GC Quantityat Operation = GC MoveQuantity
+0094       GC Location = VA frm_SavedLocation
+0095       GC LocationDB Format = VA frm_SavedLocationDB
+0096       GC Lot/Serial = VA frm_SavedLot
+0097       GC LotDescription = VA frm_SavedLotDescription
+0098       GC LotExpiration = VA frm_SavedLotExpiration
+0099       GC LotPotency = VA frm_SaveLotPotency
+0100       GC LotGrd = VA frm_SavedLotGrade
+0101       GC Lot StatCode = VA frm_SavedLotStatus
+0102       GC Supplier LotNumber = VA frm_SavedSupplierLot
+0103       GC Memo Lot 1 = VA frm_SavedMemoLot1
+0104       GC Memo Lot 2 = VA frm_SavedMemoLot2
+0105       GC Branch/Plant = VA frm_SavedBranchPlant
+0106       // =============================================================
+0107       // If Quantity moved to the savedlocation already, get a new line number by
+0108       // passing in a "0". if not use the savedline number for this blank line
+0109       // =============================================================
+0110       If VA frm_SavedLocnLotnInCache is not equal to "1"
+0111          VA frm_SavedLocnLotnInCache = "1"
+0112          GC No ofLines = VA frm_SavedReceiptLineNumber
+0113       Else
+0114          GC No ofLines = "0"
+0115       End If
+0116       VA frm_AccumQuantity = [VA frm_AccumQuantity]+[GC MoveQuantity]
+0117       // SAR 4363597 CM5847956 7/11/2000
+0118       // Default lot description from Item Master.
+0119       If GC LotDescription is equal to <Blank> And GC Lot/Serial is not equal to <Blank> And GC Lot/Serial is not equal to <Null>
+0120          F4101 Get Item Master Information
+                 GC nd Item Number -> szSecondItemNumber
+                 GC Lot Description <- szDescription
+0121       End If
+0122       //
+0123       // SAR 4116959 - Need to pass GC MCU Not FC MCU because FC might be null
+0124       // SAR 5888854 - Passed in Saved MCU instead of FC MCU
+0125       // 6344007 - Passed in the lot dates from the multiple location window
+0126       //
+0127       F43121 Update Line Split In Receipt Routing
+              "1" -> cMatchType
+              GC Order Number -> mnOrderNumber
+              GC Or Ty -> szOrderType
+              GC Order Co -> szOrderCompany
+              GC Ord Suf -> szOrderSuffix
+              GC Line Number -> mnLineNumber
+              VA frm_SavedReceiptLineNumber -> mnExistingReceiptLineNumber
+              VA frm_SavedBranchPlant -> szCurrentBranchPlant
+              GC Opr Seq [HIDDEN] -> mnOperationSequence
+              GC Short Item No -> mnShortItemNumber
+              GC Location DB Format [HIDDEN] -> szLocation
+              GC Lot/Serial -> szLot
+              GC Move Quantity -> mnMovementQuantity
+              GC Update Bucket [HIDDEN] -> szUpdateItemBalanceBucket
+              "EP43250" -> szProgramId
+              GC No of Lines [HIDDEN] <> mnNewReceiptLineNumber
+              GC Branch/ Plant -> szNewBranchPlant
+              GC Document Number [HIDDEN] -> mnDocumentNumber
+              GC Lot Potency -> mnLotPotency
+              GC Lot Grd -> szLotGrade
+              GC Lot Stat Code -> cLotStatusCode
+              GC Supplier Lot Number -> szSupplierLotNumber
+              GC Memo Lot 1 -> szMemoLotField1
+              GC Memo Lot 2 -> szMemoLotField2
+              GC Move UM -> szMoveUnitOfMeasure
+              GC Lot Description -> szLotDescription
+              GC Lot Expiration -> jdLotExpiration
+              GC Address Number -> mnSupplierNumber
+              VA frm_jdNewBestBeforeDate_BBDJ -> jdBestBeforeDate
+              VA frm_jdNewSellByDate_SBDJ -> jdSellByDate
+              VA frm_jdNewBasedOnDate_BODJ -> jdBasedOnDate
+              VA frm_jdNewOnHandDate_OHDJ -> jdOnHandDate
+              VA frm_jdNewLotEffectDate_DLEJ -> jdLotEffectivityDate
+              VA frm_jdNewUserLotDate1_U1DJ -> jdUserLotDate1
+              VA frm_jdNewUserLotDate2_U2DJ -> jdUserLotDate2
+              VA frm_jdNewUserLotDate3_U3DJ -> jdUserLotDate3
+              VA frm_jdNewUserLotDate4_U4DJ -> jdUserLotDate4
+              VA frm_jdNewUserLotDate5_U5DJ -> jdUserLotDate5
+0128    Else
+0129       // Zero out original line if move quantity has been delegated to other lines.
+0130       //
+0131       // SAR 6307687 RB5602502  11/11/02
+0132       If VA frm_SavedLocnLotnInCache is not equal to "1"
+0133          // SAR 4116959 - Need to pass GC MCU Not FC MCU because FC might be null
+0134          // SAR 5888854 - Passed in Saved MCU instead of FC MCU
+0135          // 6344007 -  Pass in multiple lot dates
+0136          F43121 Update Line Split In Receipt Routing
+                 "1" -> cMatchType
+                 GC Order Number -> mnOrderNumber
+                 GC Or Ty -> szOrderType
+                 GC Order Co -> szOrderCompany
+                 GC Ord Suf -> szOrderSuffix
+                 GC Line Number -> mnLineNumber
+                 VA frm_SavedReceiptLineNumber -> mnExistingReceiptLineNumber
+                 VA frm_SavedBranchPlant -> szCurrentBranchPlant
+                 VA frm_SavedOperationSequence -> mnOperationSequence
+                 VA frm_SavedShortItem -> mnShortItemNumber
+                 VA frm_SavedLocationDB -> szLocation
+                 VA frm_SavedLot -> szLot
+                 <Zero> -> mnMovementQuantity
+                 GC Update Bucket [HIDDEN] -> szUpdateItemBalanceBucket
+                 "EP43250" -> szProgramId
+                 VA frm_SavedReceiptLineNumber <> mnNewReceiptLineNumber
+                 GC Branch/ Plant -> szNewBranchPlant
+                 GC Document Number [HIDDEN] -> mnDocumentNumber
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grd -> szLotGrade
+                 GC Lot Stat Code -> cLotStatusCode
+                 GC Supplier Lot Number -> szSupplierLotNumber
+                 GC Memo Lot 1 -> szMemoLotField1
+                 GC Memo Lot 2 -> szMemoLotField2
+                 GC Move UM -> szMoveUnitOfMeasure
+                 GC Lot Description -> szLotDescription
+                 GC Lot Expiration -> jdLotExpiration
+                 GC Address Number -> mnSupplierNumber
+                 VA frm_jdNewBestBeforeDate_BBDJ -> jdBestBeforeDate
+                 VA frm_jdNewSellByDate_SBDJ -> jdSellByDate
+                 VA frm_jdNewBasedOnDate_BODJ -> jdBasedOnDate
+                 VA frm_jdNewOnHandDate_OHDJ -> jdOnHandDate
+                 VA frm_jdNewLotEffectDate_DLEJ -> jdLotEffectivityDate
+                 VA frm_jdNewUserLotDate1_U1DJ -> jdUserLotDate1
+                 VA frm_jdNewUserLotDate2_U2DJ -> jdUserLotDate2
+                 VA frm_jdNewUserLotDate3_U3DJ -> jdUserLotDate3
+                 VA frm_jdNewUserLotDate4_U4DJ -> jdUserLotDate4
+                 VA frm_jdNewUserLotDate5_U5DJ -> jdUserLotDate5
+0137       End If
+0138    End If
+0139    //
+0140    // If original location/lot was in cache and quantity remains, find the
+0141    // original row and use the quantity moved in that row to calculate the new
+0142    // update quantity to pass to the Update Line Split function
+0143    //
+0144    If VA frm_SavedLocnLotnInCache is equal to "1"
+0145       If VA frm_AccumQuantity is less than VA frm_OrigOperQuantity
+0146          Get Max Grid Rows(FC Grid, VA frm_MaxGridRows)
+0147          VA frm_CurrentGridRow = "1"
+0148          VA frm_RowFound = "0"
+0149          While VA frm_MaxGridRows is greater than or equal to VA frm_CurrentGridRow And VA frm_RowFound is not equal to "1"
+0150             Get Grid Row(FC Grid, VA frm_CurrentGridRow)
+0151             If GC Location is equal to VA frm_SavedLocation And GC Lot/Serial is equal to VA frm_SavedLot And GC OprSeq is equal to VA frm_SavedOperationSequence And GC Branch/Plant is equal to VA frm_SavedBranchPlant And GC OP is equal to "1"
+0152                VA frm_RowFound = "1"
+0153                VA evt_NewUpdateQty_UORG = ([GC MoveQuantity]+[VA frm_OrigOperQuantity])-[VA frm_AccumQuantity]
+0154                //
+0155                // SAR 4116959 - Need to pass GC MCU Not FC MCU because FC might be null
+0156                // SAR 5888854
+0157                // Passed in Saved MCU instead of FC MCU
+0158                // 6344007 - Pass in multiple lot dates
+0159                F43121 Update Line Split In Receipt Routing
+                       "1" -> cMatchType
+                       GC Order Number -> mnOrderNumber
+                       GC Or Ty -> szOrderType
+                       GC Order Co -> szOrderCompany
+                       GC Ord Suf -> szOrderSuffix
+                       GC Line Number -> mnLineNumber
+                       VA frm_SavedReceiptLineNumber -> mnExistingReceiptLineNumber
+                       VA frm_SavedBranchPlant -> szCurrentBranchPlant
+                       GC Opr Seq [HIDDEN] -> mnOperationSequence
+                       GC Short Item No -> mnShortItemNumber
+                       GC Location DB Format [HIDDEN] -> szLocation
+                       GC Lot/Serial -> szLot
+                       VA evt_NewUpdateQty_UORG -> mnMovementQuantity
+                       GC Update Bucket [HIDDEN] -> szUpdateItemBalanceBucket
+                       "EP43250" -> szProgramId
+                       GC No of Lines [HIDDEN] <> mnNewReceiptLineNumber
+                       GC Branch/ Plant -> szNewBranchPlant
+                       GC Document Number [HIDDEN] -> mnDocumentNumber
+                       GC Lot Potency -> mnLotPotency
+                       GC Lot Grd -> szLotGrade
+                       GC Lot Stat Code -> cLotStatusCode
+                       GC Supplier Lot Number -> szSupplierLotNumber
+                       GC Memo Lot 1 -> szMemoLotField1
+                       GC Memo Lot 2 -> szMemoLotField2
+                       GC Move UM -> szMoveUnitOfMeasure
+                       GC Lot Description -> szLotDescription
+                       GC Lot Expiration -> jdLotExpiration
+                       GC Address Number -> mnSupplierNumber
+                       VA frm_jdNewBestBeforeDate_BBDJ -> jdBestBeforeDate
+                       VA frm_jdNewSellByDate_SBDJ -> jdSellByDate
+                       VA frm_jdNewBasedOnDate_BODJ -> jdBasedOnDate
+                       VA frm_jdNewOnHandDate_OHDJ -> jdOnHandDate
+                       VA frm_jdNewLotEffectDate_DLEJ -> jdLotEffectivityDate
+                       VA frm_jdNewUserLotDate1_U1DJ -> jdUserLotDate1
+                       VA frm_jdNewUserLotDate2_U2DJ -> jdUserLotDate2
+                       VA frm_jdNewUserLotDate3_U3DJ -> jdUserLotDate3
+                       VA frm_jdNewUserLotDate4_U4DJ -> jdUserLotDate4
+                       VA frm_jdNewUserLotDate5_U5DJ -> jdUserLotDate5
+0160             End If
+0161             VA frm_CurrentGridRow = [VA frm_CurrentGridRow]+1
+0162          End While
+0163       End If
+0164    End If
+0165    //
+0166    // SAR 4116959
+0167    // User could have multiple lines with different branch plants so need to
+0168    // disable this code
+0169    //
+0170    // SAR 3574860 RR6042543
+0171    //
+0172    // SAR 5678929 RR6042543 01/22/2001
+0173    // Removed SAR 3574860
+0174    // Deleting caches will be taken care by a call to  F43092 EditLine
+0175    // which is performed in Button Clicked Event so no need to do it  again
+0176 End If
+
+=======================================================================
+     CONTROL:  EDIT GL Date
+     EVENT:  Control Exited/Changed-Asynch
+-----------------------------------------------------------------------
+0001 // SAR 2591941 MK5866452  11/2/98  Begin
+0002 // Variable created to hold Supplier Address. Condition added to prevent G/L
+0003 // validation with Work Orders
+0004 VA frm_tmpSupplierAddress = BC Address Number (F43121)
+0005 If VA frm_tmpSupplierAddress is not equal to "99,999,999.00-"
+0006    F0008 Edit Date
+           BC Company (F43121) -> szCompany
+           FC GL Date -> jdDate
+0007 End If
+0008 // SAR 2591941 MK5866452 11/2/98  End
+
+=======================================================================
+     CONTROL:  GRID Grid
+     EVENT:  Add Grid Rec to DB - Before
+-----------------------------------------------------------------------
+0001 Stop Processing
+
+-----------------------------------------------------------------------
+     EVENT:  Update Grid Rec to DB-Before
+-----------------------------------------------------------------------
+0001 Stop Processing
+
+-----------------------------------------------------------------------
+     EVENT:  Set Focus on Grid
+-----------------------------------------------------------------------
+     evt_mnCompanyCurrCode_CRCD
+     evt_szReceiptOrderType_DCTO
+0001 // ===========================================================
+0002 // SAR Revisions Log:
+0003 // 09/15/03 - IC8562913 - 6820771 - Hard Errors when move to pay
+0004 // ===========================================================
+0005 //
+0006 // SAR 3543959  MM5640795 12/9/99
+0007 // If Order being moved is a Work Order F0911 Begin Doc need not be called
+0008 If BC Line Number (F43092) is not equal to <Zero> And BC Line Number (F43121) is not equal to <Zero>
+0009    // SAR 3059868
+0010    // Need to call Journal Entry Begin Doc before we call Edit Line
+0011    //
+0012    VA frm_cGLErrorFlag_EV01 = "0"
+0013    F0101 Get Address Book Description
+           BC Address Number (F43121) -> mnAddressNumber
+           VA frm_szSupplierDescription_DESC <- szNameAlpha
+0014    F0010 Get Company Currency Code
+           BC Order Company (Order Number) (F43121) -> szCompany
+           VA evt_mnCompanyCurrCode_CRCD <- szCurrencyCode
+0015    If BC Currency Code - From (F43121) is equal to VA evt_mnCompanyCurrCode_CRCD Or BC Currency Code - From (F43121) is equal to <Blank> Or BC Currency Code - From (F43121) is equal to <Null>
+0016       VA frm_cCurrencyMode_CRRM = "D"
+0017    Else
+0018       VA frm_cCurrencyMode_CRRM = "F"
+0019    End If
+0020    Retrieve Purchase Order Receipts Processing Options
+           VA evt_szReceiptOrderType_DCTO <- szPO_RcptDocTypeDef
+           VA frm_P4312Version -> szP4312Version
+           VA frm_szJournalEntryVersion_VERS <- szGLVersion
+0021    If VA frm_szJournalEntryVersion_VERS is equal to <Blank> Or VA frm_szJournalEntryVersion_VERS is equal to <Null>
+0022       VA frm_szJournalEntryVersion_VERS = "ZJDE0001"
+0023    End If
+0024    //
+0025    // If BeginDoc has been run once before, clear out the workfile so
+0026    // duplicate records are not written
+0027    //
+0028    If VA frm_mnJEJobNumber_JOBS is not equal to <Null> And VA frm_mnJEJobNumber_JOBS is not equal to <Zero>
+0029       F0911 Delete Work File
+              VA frm_mnJEJobNumber_JOBS -> mnJobNumber
+              "1" -> cClearHeader
+              "1" -> cClearDetail
+              <Zero> -> mnDetailLineFrom
+              <Zero> -> mnDetailLineThru
+0030       VA frm_mnJEJobNumber_JOBS = "0"
+0031    End If
+0032    //
+0033    // SAR 5314739
+0034    // No longer passing Document Number
+0035    //
+0036    // SAR 6820771 FC GL Date is passed instead of BC Date - For G/L (and Voucher)
+0037    // to avoid PBCO error
+0038    F0911 Begin Document
+           VA frm_mnJEJobNumber_JOBS <- mnJobNumber
+           "A" -> cDocAction
+           "1" -> cEditInstructionFlag
+           VA frm_cGLErrorFlag_EV01 <- cErrorFlag
+           "J" -> cTypeDoc
+           <Zero> -> mnLastLineNumber
+           BC Order Company (Order Number) (F43121) -> szCompanyKey
+           VA evt_szReceiptOrderType_DCTO -> szDocumentType
+           FC GL Date -> jdGLDate
+           <Blank> -> szLedgerType
+           VA frm_BatchNumber -> mnBatchNumber
+           VA frm_BatchType -> szBatchType
+           VA frm_BatchDate -> jdBatchDate
+           BC Currency Code - From (F43121) -> szTransactionCurrency
+           BC Currency Conversion Rate - Spot Rate (F43121) -> mnCurrencyRate
+           VA frm_szSupplierDescription_DESC -> szExplanation
+           <Blank> -> cReverseVoid
+           VA frm_cCurrencyMode_CRRM -> cCurrencyMode
+           VA evt_mnCompanyCurrCode_CRCD -> szBaseCoCurrency
+           SL CurrencyProcessing              -> cCurrencyFlag
+           VA frm_szJournalEntryVersion_VERS -> szJEVersion
+0039    If VA frm_cGLErrorFlag_EV01 is not equal to <Blank> And VA frm_cGLErrorFlag_EV01 is not equal to <Null>
+0040       Stop Processing
+0041    End If
+0042 End If
+0043 VA frm_cSetFocusOnGridHasRun_EV01 = "1"
+
+-----------------------------------------------------------------------
+     EVENT:  Row is Entered
+-----------------------------------------------------------------------
+0001 // SAR 5289712 DR7158492
+0002 //
+0003 If VA grd_cRecordIsLockedFlag_EV01 is equal to "Y"
+0004    Disable Control(HC &Multiple Locations)
+0005    Disable Control(HC &Test Results)
+0006    Disable Control(HC Routing &Ledger)
+0007    Disable Control(HC &Location Detail)
+0008    Disable Control(HC &Select Qty To Move)
+0009    Disable Grid(FC Grid, <Currently Selected Row>, <All Columns>)
+0010    //
+0011    // SAR 5357412 KS7096471 08/29/01 Begin
+0012    VA grd_cGridDisabledFlag_EV01 = "Y"
+0013    // SAR 5357412 KS7096471 08/29/01 End
+0014 Else
+0015    // SAR 5357412 KS7096471 08/29/01 Begin
+0016    If VA grd_cGridDisabledFlag_EV01 is equal to "Y"
+0017       // SAR 5357412 KS7096471 08/29/01 End
+0018       Enable Control(HC &Multiple Locations)
+0019       Enable Control(HC &Test Results)
+0020       Enable Control(HC Routing &Ledger)
+0021       Enable Control(HC &Location Detail)
+0022       Enable Control(HC &Select Qty To Move)
+0023       //
+0024       // SAR 5357412 KS7096471 08/29/01 Begin
+0025       // User is only allowed to change the OP, MoveOper, MoveQuantity,
+0026       // SecondaryQuantity, Branch/Plant and OrdSuf.
+0027       Enable Grid(FC Grid, <All Rows>, GC OP)
+0028       Enable Grid(FC Grid, <All Rows>, GC MoveOper)
+0029       Enable Grid(FC Grid, <All Rows>, GC MoveQuantity)
+0030       Enable Grid(FC Grid, <All Rows>, GC SecondaryQuantity)
+0031       Enable Grid(FC Grid, <All Rows>, GC Branch/Plant)
+0032       Enable Grid(FC Grid, <All Rows>, GC OrdSuf)
+0033       VA grd_cGridDisabledFlag_EV01 = "N"
+0034    End If
+0035    // SAR 5357412 KS7096471 08/29/01 End
+0036    //
+0037 End If
+0038 //
+0039 // 6344007 - Fetch and save inventory interface for the line, used to avoid
+0040 // lot master calls for Direct Ships.
+0041 //
+
+-----------------------------------------------------------------------
+     EVENT:  Row Exit & Changed - Inline
+-----------------------------------------------------------------------
+0001 // SAR 3059833 JB5408726 09/29/99 Begin
+0002 // SAR# - 7200187 Row exit prevented when called through InsertGridBufferRow
+0003 If VA frm_cRowExitFlag_EV01 is not equal to "Y"
+0004    If VA frm_cInboundTransportationFlag is equal to "1" And GC MoveOper is equal to PO szUnscheduledDropCode And PO szUnscheduledDropCode is not equal to <Blank>
+0005       //
+0006       // If the user is moving a quantity to the unscheduled delivery step of the
+0007       // route, then call the unscheduled deliveries application
+0008       //
+0009       F43121T.Fetch Single
+              BC Type - Match Record Type (F43121) =  TK Type - Match Record Type
+              BC Order Company (Order Number) (F43121) =  TK Order Company (Order Number)
+              BC Document (Order No, Invoice, etc.) (F43121) =  TK Document (Order No, Invoice, etc.)
+              BC Order Type (F43121) =  TK Order Type
+              BC Line Number (F43121) =  TK Line Number
+              BC Number of Lines (F43121) =  TK Number of Lines
+              BC Document (Voucher, Invoice, etc.) (F43121) =  TK Document (Voucher, Invoice, etc.)
+              BC Order Suffix (F43121) =  TK Order Suffix
+0010       VA frm_mnRoutingStepNumber = "1"
+0011       F4941.Fetch Single
+              VA frm_mnShipmentNumber =  TK Shipment Number
+              VA frm_mnRoutingStepNumber =  TK Routing Step Number
+              VA frm_szPlanningDepot <- TK Depot - Trip
+              VA frm_mnLoadNumber <- TK Load Number
+0012       If VA frm_szPlanningDepot is greater than <Blank> And VA frm_mnLoadNumber is greater than <Zero>
+0013          F4960.Fetch Single
+                 VA frm_szPlanningDepot =  TK Depot - Trip
+                 VA frm_mnLoadNumber =  TK Load Number
+                 VA frm_szLoadType <- TK Load Type
+0014          VA frm_cTrackIntransitInventory = ""
+0015          F49003.Fetch Single
+                 VA frm_szLoadType =  TK Load Type
+                 VA frm_cTrackIntransitInventory <- TK Track In-transit Inventory
+0016          If VA frm_cTrackIntransitInventory is equal to "1"
+0017             F43091.Fetch Single
+                    BC Business Unit (F43121) =  TK Business Unit
+                    BC Route - Normal Route Code (F43092) =  TK Route - Normal Route Code
+                    BC Sequence Number - Operations (F43092) =  TK Sequence Number - Operations
+                    VA frm_szGLClassForTransportation <- TK Category - G/L
+0018             F4311.Fetch Single
+                    BC Order Company (Order Number) (F43121) =  TK Order Company (Order Number)
+                    BC Document (Order No, Invoice, etc.) (F43121) =  TK Document (Order No, Invoice, etc.)
+                    BC Order Type (F43121) =  TK Order Type
+                    BC Order Suffix (F43121) =  TK Order Suffix
+                    BC Line Number (F43121) =  TK Line Number
+                    VA frm_szRelatedOrderKeyCompany <- TK Company - Key (Related Order)
+                    VA frm_szRelatedOrderNumber <- TK Related PO/SO/WO Number
+                    VA frm_szRelatedOrderType <- TK Related PO/SO/WO Order Type
+                    VA frm_mnRelatedOrderLineNumber <- TK Related PO/SO Line Number
+0019             Call( App:P49655 , Form: W49655B )
+                    VA frm_szPlanningDepot -> szPlanningDepot
+                    VA frm_mnLoadNumber -> mnLoadNumber
+                    VA frm_mnShipmentNumber -> mnShipmentNumber
+                    BC Item Number - Short (F43121) -> mnIdentifierShortItem
+                    GC Move Quantity -> mnUnitsLineItemQtyRe
+                    GC UM -> szUnitOfMeasure
+                    VA frm_szGLClassForTransportation -> szGlCategory
+                    VA frm_szRelatedOrderNumber -> szRelatedPoNumber
+                    VA frm_szRelatedOrderType -> szRelatedOrderType
+                    VA frm_szRelatedOrderKeyCompany -> szCompanyKeyRelated
+                    VA frm_mnRelatedOrderLineNumber -> mnRelatedPoLineNo
+0020          End If
+0021       End If
+0022    End If
+0023    // SAR 3059833 JB5408726 09/29/99 End
+0024    //
+0025    // SAR 5247387 Begin
+0026    If GC OP is equal to "1"
+0027       If GC MoveOper is equal to "STK" Or GC OperCode is equal to "STK"
+0028          Get Related Order Info
+                 GC Order Number -> mnOrderNumber
+                 GC Or Ty -> szOrderType
+                 GC Order Co -> szCompanyKeyOrderNo
+                 GC Ord Suf -> szOrderSuffix
+                 GC Line Number -> mnLineNumber
+                 VA frm_szRelatedOrderNumber <- szRelatedOrderNumber
+                 VA frm_szRelatedOrderType <- szRelatedOrderType
+                 VA frm_szRelatedOrderKeyCompany <- szReleatedCompanyKey
+                 VA frm_mnRelatedOrderLineNumber <- mnRelatedOrderLineNo
+0029          If VA frm_szRelatedOrderNumber is not equal to <Blank>
+0030             String, Convert String To Numeric
+                    VA frm_szRelatedOrderNumber -> szGenericString
+                    VA frm_mnRelatedWONum_DOCO <- mnNumericValue
+0031             Get F4801 Values
+                    VA frm_mnRelatedWONum_DOCO -> mnDocumentOrderInvoiceE
+                    VA frm_szF4801SecondItemNum_LITM <- szIdentifier2ndItem
+0032             VA frm_szF4801SecondItemNum_LITM = rtrim([VA frm_szF4801SecondItemNum_LITM],' ')
+0033             VA frm_mn2ndItemNoLength_INT01 = length([VA frm_szF4801SecondItemNum_LITM])
+0034             VA frm_szExtractedString_VC06A = substr([GC 2nd Item Number],[VA frm_mn2ndItemNoLength_INT01],3)
+0035             If VA frm_szExtractedString_VC06A is equal to "*OP"
+0036                VA frm_szP3103UOM_UOM1 = GC UM
+0037                Call( App:P3103 , Form: W3103A )
+                       VA frm_mnRelatedWONum_DOCO -> OrderNumber
+                       VA frm_mnRelatedOrderLineNumber -> OperationSequenceNumber
+                       GC Move Quantity <> QuantityCompleted
+                       GC Short Item No -> ShortItemNumber
+                       VA frm_szP3103UOM_UOM1 <> UnitOfMeasure
+                       GC Location -> Location
+                       GC Branch/ Plant -> BusinessUnit
+                       VA frm_mnQuantityScrapped_SOCN <- QuantityScrapped
+                       VA frm_szOperationStatusCode_OPST <- OperationStatusCode
+                       GC Quantity at Operation -> mnUnitsOpenToReceive
+0038                VA frm_szExtractedString_VC06A = "0"
+0039             Else
+0040                VA frm_mnQuantityScrapped_SOCN = "0"
+0041             End If
+0042          End If
+0043       End If
+0044    End If
+0045 End If
+0046 // SAR 5247387 End
+
+-----------------------------------------------------------------------
+     EVENT:  Row Exit & Changed - Asynch
+-----------------------------------------------------------------------
+0001 // SAR 4320255  JB5408726  08/01/2000
+0002 // Skip this logic if this event is triggered after the OK Button has been
+0003 // clicked and this logic has already run in the OK Button's event rules while
+0004 // loop.
+0005 //
+0006 // SAR# - 7200187 Row exit prevented when called through InsertGridBufferRow
+0007 If VA frm_cRowExitFlag_EV01 is not equal to "Y"
+0008    If VA grd_cEditLineHasRunFlag_EV01 is not equal to "O"
+0009       If GC OP is equal to "1"
+0010          If GC BaseCurr is equal to <Blank> Or GC BaseCurr is equal to <Null>
+0011             F0010 Get Company Currency Code
+                    GC Order Co -> szCompany
+                    GC Base Curr [HIDDEN] <- szCurrencyCode
+0012          End If
+0013       End If
+0014    End If
+0015    //
+0016    // SAR 6681302  mh6859916 6/27/03 Begin
+0017    // Do not allow users to move orders that have different currencies associated
+0018    // with them.
+0019    If VA frm_szSavedCurrencyCode_CCDO is not equal to <Blank> And VA frm_szSavedCurrencyCode_CCDO is not equal to <Null>
+0020       // SAR 6643218 - Check that the line is being moved before setting the error.
+0021       If GC BaseCurr is not equal to VA frm_szSavedCurrencyCode_CCDO And GC OP is equal to "1"
+0022          // SAR 6643218 - End
+0023          Set Grid Cell Error(FC Grid,  <Currently Selected Row>,  <All Columns>, "43A03")
+0024          Set Grid Color(FC Grid,  <Currently Selected Row>,  <All Columns>, <Red>)
+0025          Stop Processing
+0026       End If
+0027    Else
+0028       VA frm_szSavedCurrencyCode_CCDO = GC BaseCurr
+0029    End If
+0030    // SAR 6681302  mh6859916 6/27/03 End
+0031    //
+0032    // SAR 4183369 RR6042543  05/18/2000
+0033    // The header changes wouldn't take effect once Editline is run so lock header
+0034    Disable Control(FC Receipt Date)
+0035    Disable Control(FC GL Date)
+0036    //
+0037    // SAR 4320255 JB5408726 08/01/2000
+0038    // Skip this call to Editline if this event is triggered after the OK Button
+0039    // has been clicked and Editline has already run in the OK Button's event
+0040    // rules while loop.
+0041    //
+0042    If VA grd_cEditLineHasRunFlag_EV01 is not equal to "O"
+0043       //
+0044       // SAR 4619644
+0045       // Pass in the szAgreementNumber
+0046       //
+0047       // SAR 4714211
+0048       // Pass in the landed cost job number
+0049       //
+0050       // SAR 5247387
+0051       // Pass in P3103 values
+0052       //
+0053       // SAR 5378441 RJ6951325 10/22/01
+0054       // Return receipt document type to application
+0055       // SAR 6231897
+0056       // Changed Edit line to reapply SAR 4714211
+0057       //
+0058       F43092 Edit Line
+              SL UserID                          -> szUserID
+              VA frm_ComputerID -> szComputerID
+              "EP43250" -> szProgramID
+              GC Order Number -> mnOrderNumber
+              GC Or Ty -> szOrderType
+              GC Order Co -> szOrderCompany
+              GC Ord Suf -> szOrderSuffix
+              GC Line Number -> mnOrderLineNumber
+              GC No of Lines [HIDDEN] -> mnReceiptLineNumber
+              GC Oper Code -> szOperationCodeFrom
+              GC Move Oper -> szOperationCodeTo
+              GC UM -> szUnitOfMeasureFrom
+              SL VersionName                     -> szP43250Version
+              <Blank> -> cReverseDispositionFlag
+              GC Quantity at Operation -> mnQuantityAtOperation
+              GC Move Quantity -> mnQuantityToMove
+              <Zero> -> mnQuantityAdjusted
+              <Zero> -> mnQuantityRejected
+              <Zero> -> mnQuantityReturned
+              <Zero> -> mnQuantityReworked
+              VA frm_mnQuantityScrapped_SOCN -> mnQuantityScrapped
+              <Blank> -> szReasonCodeAdj
+              <Blank> -> szReasonCodeRej
+              <Blank> -> szReasonCodeRet
+              <Blank> -> szReasonCodeRew
+              <Blank> -> szReasonCodeScr
+              <Blank> -> cReplaceDispositionAdj
+              <Blank> -> cReplaceDispositionRej
+              <Blank> -> cReplaceDispositionRet
+              <Blank> -> cReplaceDispositionRew
+              <Blank> -> cReplaceDispositionScr
+              FC Receipt Date -> jdReceiptDate
+              FC GL Date -> jdGLDate
+              VA frm_BatchDate <> jdBatchDate
+              VA frm_BatchNumber <> mnBatchNumber
+              VA frm_BatchStatus <> cBatchStatus
+              VA frm_BatchType <> szBatchType
+              GC Base Curr [HIDDEN] <> szDomesticCurrencyCode
+              VA frm_cCurrencyMode_CRRM <> cCurrencyMode
+              GC Exchange Rate [HIDDEN] -> mnExchangeRate
+              VA frm_F43092JobNumber <> mnF43092Jobnumber
+              VA frm_F43121JobNumber <> mnF43121JobNumber
+              GC F43121Z RecWritten (wf) [HIDDEN] <> cF43121ZRecordWritten
+              VA frm_P4312Version <> szP4312Version
+              GC F4111Z RecWritten (wf) [HIDDEN] <> cF4111ZRecordWritten
+              VA frm_F4311JobNumber <> mnF4311JobNumber
+              GC F4311Z RecWritten (wf) [HIDDEN] <> cF4311ZRecordWritten
+              VA frm_P4310Version <> szP4310Version
+              VA frm_F0911JobNumber <> mnF0911JobNumber
+              VA frm_LastJELineNumber <> mnLastJELineNumber
+              VA frm_MovementControl <> cMovementControl
+              GC Short Item No -> mnShortItemNumber
+              GC TrnToPrimary ConvFactor (wf) [HIDDEN] <> mnTrnToPrimaryCnvFactor
+              GC PurchToPrimary ConvFactor (wf) [HIDDEN] <> mnPrchToPrimaryCnvFactor
+              VA frm_F4111JobNumber <> mnF4111JobNumber
+              GC O P -> cSelectionExit
+              VA frm_DateToday -> jdDateToday
+              VA frm_CurrentTime -> mnTimeOfDay
+              VA frm_P43214Version <> szP43214Version
+              VA grd_TriangulationRateFromCurre <> mnTriangulationRateFrom
+              VA grd_TriangulationRateToCurrenc <> mnTriangulationRateTo
+              VA grd_CurrencyConversionMethod <> cCurrencyConversionMethod
+              VA frm_mnJEJobNumber_JOBS -> mnMvmtDispJEJobNumber
+              BC Agreement Number - Distribution (F43121) -> szAgreementNumber
+              GC Secondary Quantity -> mSecondaryQty
+              GC Sec UOM -> szSecondaryUOM
+              VA frm_LCJobNumber <> mnLandedCJobNo
+              VA frm_CmodeProcessing <- cModeProcessing
+              VA frm_szP3103UOM_UOM1 -> szP3103UOM
+              VA frm_szOperationStatusCode_OPST -> szP3103OpStatusCode
+              VA frm_ReceiptDocType_DCT <- szReceiptDocType
+0059       //
+0060       If GC OP is not equal to <Blank> And GC OP is not equal to <Null>
+0061          VA grd_cEditLineHasRunFlag_EV01 = "Y"
+0062       Else
+0063          VA grd_cEditLineHasRunFlag_EV01 = "N"
+0064       End If
+0065    End If
+0066 End If
+0067 //
+
+=======================================================================
+     CONTROL:  GRIDCOL O P
+     EVENT:  Col Exited & Changed - Inline
+-----------------------------------------------------------------------
+0001 If GC OP is equal to "4"
+0002    Press Button(HC &Multiple Locations)
+0003 End If
+
+=======================================================================
+     CONTROL:  GRIDCOL Move Oper
+     EVENT:  Visual Assist Button Clicked
+-----------------------------------------------------------------------
+0001 Suppress Default Visual Assist Form
+0002 // SAR 3692014 MM5640795 1/21/00
+0003 // Operation Code now passed correctly
+0004 //
+0005 // SAR 3787371 SR5729159
+0006 // GC No of Lines now passed in
+0007 Call( App:P43092 , Form: W43092A )
+        BC Business Unit (F43121) -> CostCenter
+        GC Opr Seq [HIDDEN] -> OperationSequence
+        BC Document (Order No, Invoice, etc.) (F43092) -> mnDocumentOrderInvoiceE
+        BC Line Number (F43092) -> mnLineNumber
+        GC No of Lines [HIDDEN] -> mnNoOfLinesOnOrder
+        GC Move Oper <> szOperCode
+        FI cToOperControl -> cOperToControl
+
+=======================================================================
+     CONTROL:  GRIDCOL Move Quantity
+     EVENT:  Col Exited & Changed - Inline
+-----------------------------------------------------------------------
+0001 // SAR 4117644 Begin
+0002 If GC MoveQuantity is greater than GC Quantityat Operation
+0003    Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC MoveQuantity, "2717")
+0004    // SAR 6855675 mh6859916 - Disable the OP field until user has correct the
+0005    // error.
+0006    Disable Grid(FC Grid,  <Currently Selected Row>, GC OP)
+0007 Else
+0008    Enable Grid(FC Grid,  <Currently Selected Row>, GC OP)
+0009    // SAR 6855675 End
+0010 End If
+0011 // SAR 4117644 End
+
+=======================================================================
+     CONTROL:  BUTTON Clear Caches [HIDDEN]
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 If VA frm_F43092JobNumber is not equal to <Zero> And VA frm_F43092JobNumber is not equal to <Null>
+0002    F43092Z Receipt Routing Cache
+           VA frm_ComputerID -> szComputerID
+           VA frm_F43092JobNumber -> mnJobNumber
+           "7" -> cMode
+0003 End If
+0004 If VA frm_mnRouteCache_JOBS is not equal to <Zero> And VA frm_mnRouteCache_JOBS is not equal to <Null>
+0005    F43091 Read/Write Routing Operations Cache
+           <Blank> -> szBranchPlant
+           <Blank> -> szNormalRouteCode
+           VA frm_ComputerID -> szComputerID
+           VA frm_mnRouteCache_JOBS -> mnJobNumber
+           "9" -> cMode
+0006 End If
+0007 If VA frm_F43121JobNumber is not equal to <Zero> And VA frm_F43121JobNumber is not equal to <Null>
+0008    F43121 Delete Work File
+           VA frm_ComputerID -> szComputerID
+           VA frm_F43121JobNumber -> mnJobNumber
+           VA frm_P4312Version -> szPOVersion
+           VA frm_LCJobNumber -> mnLandedCostJobNumber
+           VA frm_F4111JobNumber -> mnF4111JobNumber
+           VA frm_F0911JobNumber -> mnF0911JobNumber
+0009    // SAR 5968660 RB5602502 05/09/02 Begin
+0010    F3111 WO Issues Release Allocated Resources
+           VA frm_F43121JobNumber <> mnJobNumber
+           VA frm_F4111JobNumber <> mnOPF4111JobNumber
+           VA frm_F0911JobNumber <> mnOPF0911JobNumber
+           "1" -> cF4312RecordExists
+0011    // SAR 5968660 RB5602502 05/09/02 End
+0012 Else
+0013    //
+0014    // Journal entries may be written at intermediate steps in the route, not just
+0015    // when moving to STK (and calling F4312 End Doc)
+0016    // so clear the F0911 cache if it has been previously written to so that
+0017    // duplicate journal entries will not be written.  Then set job number to zero
+0018    // so that F0911FSBeginDoc will be called again.
+0019    // F0911 Delete Work File is called as part of the F43121 Delete Work File
+0020    // function,  hence the reason for the conditional -- no reason to call it
+0021    // twice.
+0022    //
+0023    If VA frm_mnJEJobNumber_JOBS is not equal to <Null> Or VA frm_mnJEJobNumber_JOBS is not equal to <Zero>
+0024       F0911 Delete Work File
+              VA frm_mnJEJobNumber_JOBS <> mnJobNumber
+              "1" -> cClearHeader
+              "1" -> cClearDetail
+              <Zero> -> mnDetailLineFrom
+              <Zero> -> mnDetailLineThru
+0025    End If
+0026 End If
+0027 FI mnBatchNumber = VA frm_BatchNumber
+0028 FI cBatchStatus = VA frm_BatchStatus
+0029 FI jdBatchDate = VA frm_BatchDate
+
+Tuesday December 17, 2013  15:46

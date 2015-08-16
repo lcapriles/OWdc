@@ -2,6 +2,7 @@ ConversionUnicode/*
 Debug/*
 Logs/*
 *.ncb
+*.log
 svrDispatcher/Debug/*.log
 svrDispatcher/Debug/*.map
 svrDispatcher/Debug/*.pch

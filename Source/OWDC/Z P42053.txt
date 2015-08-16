@@ -1,0 +1,3416 @@
+Listing of ER for Application : Select Multiple Locations (P42053)
+
+
+=======================================================================
+     FORM: Select Multiple Locations [HEADERLESS DETAIL] (W42053B)
+=======================================================================
+     CONTROL:  FORM
+     EVENT:  Dialog is Initialized
+-----------------------------------------------------------------------
+0001 // *********************************************
+0002 // *      FI CallingApplication Mode
+0003 // *      Purchasing  = 'P'
+0004 // *      Sales  = 'S'
+0005 // *     Completion  = 'W'
+0006 // *      Issues  = 'M'
+0007 // *      Part List   = '  '  <Blank>
+0008 // **********************************************
+0009 //
+0010 Set Data Dictionary Item(FC Grid, GC mnCtrlQTY, SOQS, <Default>)
+0011 // Begin SAR -  6874690 - Set quantity on hand to PQOH data item.
+0012 Set Data Dictionary Item(FC Grid, GC QuantityOn Hand, PQOH, <Default>)
+0013 //       Set values for variables
+0014 //
+0015 VA frm_cLastRecordRead = "0"
+0016 VA frm_cPassedEdits_Purch = "0"
+0017 VA frm_szOrigMCU = FI CostCenter
+0018 VA frm_date01_TodaysDate = date_today( )
+0019 VA frm_EV07_PostDialogOnce = "0"
+0020 VA frm_cDoOnce = "0"
+0021 VA frm_EV01_FindButtonClicked = "0"
+0022 FC Line Number = FI Linenumber
+0023 // Check Advanced Lot Processing is On
+0024 Vertical Feature
+        "03" -> szVerticalEnhancement
+        VA frm_cAdvLotProcessingOn_EV01 <- cEnhancementExistance
+0025 If VA frm_cAdvLotProcessingOn_EV01 is not equal to "1"
+0026    Hide Grid Column(FC Grid, GC Lot EffectiviteDate)
+0027    Hide Grid Column(FC Grid, GC Based OnDate)
+0028    Disable Control(HC Lot Date Override)
+0029 Else
+0030    If FI CallingApplication is equal to "M,W"
+        And FI cLotExpirationDateCalculat is equal to "1,3"
+0031       Hide Grid Column(FC Grid, GC Based OnDate)
+0032    End If
+0033    If FI CallingApplication is equal to "S"
+0034       Hide Grid Column(FC Grid, GC Based OnDate)
+0035    End If
+0036 End If
+0037 //
+0038 F4101 Get Item Master Information
+        FI IdentifierShortItem -> mnShortItemNumber
+        UNDEFINED X szPrimaryItemNumber
+        UNDEFINED X szSecondItemNumber
+        UNDEFINED X szThirdItemNumber
+        UNDEFINED X szDescription
+        UNDEFINED X szDescriptionLine2
+        UNDEFINED X szItemFlashMessage
+        VA frm_PrimaryUomAsInput <- szPrimaryUOM
+        VA frm_ItemMasterUOM2 <- szSecondaryUOM
+        UNDEFINED X szPurchasingUOM
+        UNDEFINED X szPricingUOM
+        UNDEFINED X szShippingUOM
+        UNDEFINED X szWeightUOM
+        UNDEFINED X szVolumeUOM
+        "1" -> cSuppressErrorMessage
+        UNDEFINED X szErrorMessageID
+        FI CostCenter -> szBranchPlant
+        UNDEFINED X cBackOrdersAllowedYN
+        UNDEFINED X cStockingType
+        UNDEFINED X cBulkPackedFlag
+        UNDEFINED X cInventoryCostLevel
+        UNDEFINED X szLineType
+        VA frm_SRCE_LotProcessType_SAVE <- cLotProcessType
+        UNDEFINED X mnShelfLifeDays
+        UNDEFINED X szGLClassCode
+        UNDEFINED X cContractItem
+        UNDEFINED X szProductionUOM
+        UNDEFINED X szFromGrade
+        UNDEFINED X szThruGrade
+        UNDEFINED X mnFromPotency
+        UNDEFINED X mnThruPotency
+        UNDEFINED X cPriceLevel
+        UNDEFINED X cGradePotencyPricing
+        UNDEFINED X cRoundToWholeNumber
+        UNDEFINED X cKitPricingMethod
+        UNDEFINED X szComponentUOM
+        UNDEFINED X szStandardUOMConversion
+        UNDEFINED X mnBuyer
+        UNDEFINED X mnPlannerNumber
+        UNDEFINED X szPrintMessage
+        UNDEFINED X cCommitmentMethod
+        UNDEFINED X cCheckAvailability
+        UNDEFINED X cSerialNumberReqsted
+        UNDEFINED X cLotStatusCode
+        UNDEFINED X cPurchasePriceLevel
+        UNDEFINED X szTemplate
+        UNDEFINED X szSegment1
+        UNDEFINED X szSegment2
+        UNDEFINED X szSegment3
+        UNDEFINED X szSegment4
+        UNDEFINED X szSegment5
+        UNDEFINED X szSegment6
+        UNDEFINED X szSegment7
+        UNDEFINED X szSegment8
+        UNDEFINED X szSegment9
+        UNDEFINED X szSegment10
+        UNDEFINED X cMatrixControlled
+        VA frm_DualUnitOfMeasureItem <- cDualUnitOfMeasureItem
+        VA frm_DualPickingProcessOption <- cDualPickingProcessOption
+        UNDEFINED X mnDualTolerance
+0039 //
+0040 // SAR 4674918 begin
+0041 // Begin SAR 6526564 Dual Code review issues - Changed the ' If ' condition
+0042 // and deleted all the Show Controls except FC DualQtyUnder
+0043 If VA frm_DualUnitOfMeasureItem is not equal to <Blank> And VA frm_DualUnitOfMeasureItem is not equal to <Null>
+0044    Show Control(FC DualQtyUnder)
+0045 Else
+0046    Hide Control(FC DualQtyUnder)
+0047 End If
+0048 // End SAR 6526564
+0049 // SAR 4674918 end
+0050 If FI CallingApplication is equal to "P"
+     And VA frm_SRCE_LotProcessType_SAVE is equal to "4,5,6,7"
+     And FI szUnitOfMeasureAsInput is not equal to VA frm_PrimaryUomAsInput
+0051    F41002 Get Item UoM Conversion
+           FI CostCenter -> szBranchPlant
+           FI szUnitOfMeasureAsInput -> szFromUnitOfMeasure
+           VA frm_PrimaryUomAsInput -> szToUnitOfMeasure
+           FI Unitsquantityshipped -> mnQuantityToConvert
+           "Y" -> cInventoryInterfaceFlag
+           UNDEFINED X mnConversionFactorFromToPrim
+           UNDEFINED X mnConversionFactorFrom_to_To
+           UNDEFINED X mnConversionFactorTo_to_Primar
+           VA frm_UnitsQtyShippedPrimary <- mnQuantityConvertedToPrimary
+           UNDEFINED X cConvertToSecondary
+           UNDEFINED X mnQuantityConvertedToSecondary
+           UNDEFINED X cConvertToPurchasing
+           UNDEFINED X mnQuantityConvertedToPurchasin
+           UNDEFINED X cConvertToPricing
+           UNDEFINED X mnQuantityConvertedToPricing
+           UNDEFINED X cConvertToShipping
+           UNDEFINED X mnQuantityConvertedToShipping
+           UNDEFINED X cConvertToWeight
+           UNDEFINED X mnQuantityConvertedToWeight
+           UNDEFINED X cConvertToVolume
+           UNDEFINED X mnQuantityConvertedToVolume
+           UNDEFINED X cPotencyMode
+           UNDEFINED X szLotNumber
+           UNDEFINED X cPotencyControl
+           UNDEFINED X mnStandardPotency
+           UNDEFINED X szErrorMessageID
+           "1" -> cSuppressErrorMsg
+           UNDEFINED X cPotencyType
+           FI IdentifierShortItem -> mnShortItemNumber
+           UNDEFINED X cUOMByBranch
+           UNDEFINED X szUOMToPrimary
+           UNDEFINED X szUOMToSecondary
+           UNDEFINED X szUOMToPurchasing
+           UNDEFINED X szUOMToPricing
+           UNDEFINED X szUOMToWeight
+           UNDEFINED X szUOMToVolume
+           UNDEFINED X szUOMToShipping
+           UNDEFINED X szStandardUOMConversion
+           UNDEFINED X mnQuantityConvertedFromtoTo
+           UNDEFINED X cExcludeFlag
+0052    FC QAVALTotalSelected = VA frm_UnitsQtyShippedPrimary
+0053    FC QuantityFromOrder = VA frm_UnitsQtyShippedPrimary
+0054    FC Order Qty UOM = VA frm_PrimaryUomAsInput
+0055    FI Unitsquantityshipped = VA frm_UnitsQtyShippedPrimary
+0056    FI szUnitOfMeasureAsInput = VA frm_PrimaryUomAsInput
+0057 Else
+0058    FC QuantityFromOrder = FI Unitsquantityshipped
+0059    FC QAVALTotalSelected = FI Unitsquantityshipped
+0060    FC Order Qty UOM = FI szUnitOfMeasureAsInput
+0061    // SAR 4674918 begin
+0062    If VA frm_DualUnitOfMeasureItem is equal to "1"
+        Or VA frm_DualUnitOfMeasureItem is equal to "2"
+0063       FC DualQuantityOrdered = FI mnUnitsSecondaryQtyOr
+0064       FC TotalDualSelected = FI mnUnitsSecondaryQtyOr
+0065       FC DualUOM = FI szUnitOfMeasureSecondary
+0066    End If
+0067    // SAR 4674918 end
+0068 End If
+0069 //
+0070 //        If window called by Sales Application, hide the unrelated fields
+0071 //
+0072 If FI CallingApplication is not equal to "P"
+0073    Hide Control(FC Supplier Lot(Purch))
+0074    Hide Control(FC Memo Lot 2(Purch))
+0075    Hide Control(FC Memo Lot 1(Purch))
+0076    Hide Control(FC Default:)
+0077    //
+0078    // SAR 2969659 - Deleted system function that hid the expiration date column and
+0079    // will now disable or enable the column based on wheter purchasing of anything
+0080    // else is calling the multiple location window.  RM5906864 08/16/99
+0081    //
+0082    // endable Expriation Date column for Credit Orders from ShipConfirm.
+0083    If FI CallingApplication is equal to "S"
+        And FI cAllowNewLotForCO is not equal to "1"
+        And FI cIsThisCreditOrderY_N is not equal to "1"
+0084       Disable Grid(FC Grid,  <All Rows>, GC ExpirationDate)
+0085    End If
+0086    //
+0087    // Multiple Lot Date
+0088    Disable Grid(FC Grid,  <All Rows>, GC Lot EffectiviteDate)
+0089    Disable Grid(FC Grid,  <All Rows>, GC Based OnDate)
+0090    Hide Grid Column(FC Grid, GC Lot Status Cd)
+0091 Else
+0092    Show Control(FC Supplier Lot(Purch))
+0093    Show Control(FC Memo Lot 2(Purch))
+0094    Show Control(FC Memo Lot 1(Purch))
+0095    Show Control(FC Default:)
+0096    Show Grid Column(FC Grid, GC Lot Status Cd)
+0097    //
+0098    // SAR 2969659 - Deleted system function that showed the expiration date column
+0099    // and will now disable or enable the column based on wheter purchasing or
+0100    // anything else is calling the multiple location window.  RM5906864 08/16/99
+0101    //
+0102    Enable Grid(FC Grid,  <All Rows>, GC ExpirationDate)
+0103    //
+0104    // SAR #5916270 -Enable Lot Status Code if called by Purchasing:
+0105    Enable Grid(FC Grid,  <All Rows>, GC Lot Status Cd)
+0106    // End #5916270
+0107    //
+0108 End If
+0109 //
+0110 //        If window called by Purchasing Application, hide the unrelated fields.
+0111 //        The second condition here Relates to Purchasing only
+0112 //        If they are passing in all these values, then they are trying to updat
+0113 //        the records information.  We don't want to do any edits to the record
+0114 //        Allow updates of date and lot status code.  If qty field is changed,
+0115 //        edits will be performed on everything.
+0116 //
+0117 If FI CallingApplication is equal to "P"
+0118    Hide Grid Column(FC Grid, GC Available)
+0119    // SAR 5349931begin
+0120    Hide Grid Column(FC Grid, GC SecondaryAvailable)
+0121    // SAR 5349931end
+0122    Hide Control(FC From Lot)
+0123    Hide Control(FC To Lot)
+0124    If FI Unitsquantityshipped is equal to "1"
+        And FI Lot is not equal to <Blank>
+0125       VA frm_cPassedEdits_Purch = "1"
+0126    Else
+0127       VA frm_cPassedEdits_Purch = "0"
+0128    End If
+0129 End If
+0130 //
+0131 Show Control(FC mnQtyUnder)
+0132 Hide Control(FC mnQtyOver)
+0133 //
+0134 // SAR 6399517 heck for decimal value to be consistent with P4210.
+0135 // If it is non-decimal environment==> Round/Truncate. '3'
+0136 // If it is a decimal environment==> Round. '0'
+0137 //
+0138 Get Data Dictionary Definition
+        "QAVE1" -> szDataDictionaryItem
+        "1" -> cSuppressErrorMessage
+        VA frm_mnDisplayDecimal_MATH01 <- mnDisplayDecimals
+0139 If VA frm_mnDisplayDecimal_MATH01 is not equal to <Zero>
+0140    VA frm_cTruncOrRound_EV01 = "0"
+0141 Else
+0142    VA frm_cTruncOrRound_EV01 = "3"
+0143 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Post Dialog is Initialized
+-----------------------------------------------------------------------
+0001 //
+0002 //      Only perform this event once
+0003 //
+0004 If VA frm_EV07_PostDialogOnce is not equal to "1"
+0005    VA frm_EV07_PostDialogOnce = "1"
+0006    Hide Control(FC From Potency)
+0007    Hide Control(FC Thru Potency)
+0008    Hide Control(FC From Grade)
+0009    Hide Control(FC Thru Grade)
+0010    //
+0011    //         Call BSFN's to get data about Item Branch to save into GB's
+0012    //
+0013    F4101 Get Item Master Information
+           FI IdentifierShortItem -> mnShortItemNumber
+           FC Item Number <- szPrimaryItemNumber
+           UNDEFINED X szSecondItemNumber
+           UNDEFINED X szThirdItemNumber
+           FC ITEM NUMBER <- szDescription
+           UNDEFINED X szDescriptionLine2
+           UNDEFINED X szItemFlashMessage
+           VA frm_szPrimaryUoM <- szPrimaryUOM
+           VA frm_szSecondaryUoM <- szSecondaryUOM
+           UNDEFINED X szPurchasingUOM
+           UNDEFINED X szPricingUOM
+           UNDEFINED X szShippingUOM
+           UNDEFINED X szWeightUOM
+           UNDEFINED X szVolumeUOM
+           "1" -> cSuppressErrorMessage
+           VA frm_szErrorMessage <- szErrorMessageID
+           FI CostCenter -> szBranchPlant
+           UNDEFINED X cBackOrdersAllowedYN
+           UNDEFINED X cStockingType
+           UNDEFINED X cBulkPackedFlag
+           UNDEFINED X cInventoryCostLevel
+           UNDEFINED X szLineType
+           VA frm_SRCE_LotProcessType <- cLotProcessType
+           UNDEFINED X mnShelfLifeDays
+           UNDEFINED X szGLClassCode
+           UNDEFINED X cContractItem
+           UNDEFINED X szProductionUOM
+           VA frm_FRGD_FromGrade <- szFromGrade
+           VA frm_THGD_ThruGrade <- szThruGrade
+           VA frm_FRMP_FromPotency <- mnFromPotency
+           VA frm_THRP_ThruPontency <- mnThruPotency
+           UNDEFINED X cPriceLevel
+           UNDEFINED X cGradePotencyPricing
+           UNDEFINED X cRoundToWholeNumber
+           UNDEFINED X cKitPricingMethod
+           UNDEFINED X szComponentUOM
+           VA frm_cStandardUOMFlag <- szStandardUOMConversion
+           UNDEFINED X mnBuyer
+           UNDEFINED X mnPlannerNumber
+           UNDEFINED X szPrintMessage
+           UNDEFINED X cCommitmentMethod
+           UNDEFINED X cCheckAvailability
+           VA frm_SRNR_SerialNumberRequired <- cSerialNumberReqsted
+           UNDEFINED X cLotStatusCode
+           UNDEFINED X cPurchasePriceLevel
+           UNDEFINED X szTemplate
+           UNDEFINED X szSegment1
+           UNDEFINED X szSegment2
+           UNDEFINED X szSegment3
+           UNDEFINED X szSegment4
+           UNDEFINED X szSegment5
+           UNDEFINED X szSegment6
+           UNDEFINED X szSegment7
+           UNDEFINED X szSegment8
+           UNDEFINED X szSegment9
+           UNDEFINED X szSegment10
+           UNDEFINED X cMatrixControlled
+           UNDEFINED X cDualUnitOfMeasureItem
+           UNDEFINED X cDualPickingProcessOption
+           UNDEFINED X mnDualTolerance
+0014    //  SAR #3081037   RR6042543
+0015    F4102 Get Item Branch Row
+           FI CostCenter -> szBranchPlant
+           FI IdentifierShortItem -> mnShortItemNumber
+           "2" -> mnIndex
+           "2" -> mnKeys
+           "1" -> cCallType
+           "1" -> cReturnRecord
+           UNDEFINED X cErrorCode
+           VA frm_idItemBranchPointer <- idItemBranchRecord
+0016    //  SAR #3081037   RR6042543
+0017    F4102 Get Grade, Potency and Quantities
+           VA frm_idItemBranchPointer -> idF4102RowPointer
+           UNDEFINED X cBackordersAllowedYN
+           VA frm_cCheckAvailableFlag <- cCheckAvailabilityYN
+           VA frm_cPotencyControlFlag <- cPotencyControl
+           GB Lot Potency <- mnStandardPotency
+           UNDEFINED X cStockingType
+           VA frm_SRCE_LotProcessType <- cLotProcessType
+           UNDEFINED X mnSafetyStock
+           UNDEFINED X mnReorderPointInput
+           UNDEFINED X mnReorderQuantityInput
+           UNDEFINED X mnReorderQuantityMax
+           UNDEFINED X mnReorderQuantityMin
+           UNDEFINED X mnUnitsPerContainer
+           UNDEFINED X mnQuantityOrderMultiples
+           UNDEFINED X szItemPriceGroup
+           UNDEFINED X cFixedOrVariableLeadTime
+           VA frm_cGradeControlFlag <- cGradeControl
+           UNDEFINED X szGLCategory
+           UNDEFINED X szSalesCategorySection
+           UNDEFINED X szSubSection
+           UNDEFINED X szSalesCategory3
+           UNDEFINED X szSalesCategory4
+           UNDEFINED X szSalesCategory5
+           VA frm_SRNR_SerialNumberRequired <- cSerialNumberRequired
+           UNDEFINED X cCrossDockFlagYN
+           UNDEFINED X szSupplierNumber
+0018    Memory, Free Ptr To Data Structure
+           VA frm_idItemBranchPointer <> idGenericLong
+0019    F4100 Format Location
+           FI CostCenter -> szCostCenter
+           FI Location -> szDisplayFormatLocation
+           GB Location (DB form) [HIDDEN] <- szFileFormatLocation
+           "2" -> cValidate
+           UNDEFINED X szAisle
+           UNDEFINED X szBin
+           UNDEFINED X szLocation3
+           UNDEFINED X szLocation4
+           UNDEFINED X szLocation5
+           UNDEFINED X szLocation6
+           UNDEFINED X szLocation7
+           UNDEFINED X szLocation8
+           UNDEFINED X szLocation9
+           UNDEFINED X szLocation10
+           "2" -> cMode
+           UNDEFINED X idBranchConstantRecord
+0020    //
+0021    //        Check for Potency and Grade flags, hide/show the relevant fields
+0022    //
+0023    If VA frm_cGradeControlFlag is equal to "Y"
+0024       FC From Grade = VA frm_FRGD_FromGrade
+0025       Show Control(FC From Grade)
+0026       Show Control(FC Thru Grade)
+0027       FC Thru Grade = VA frm_THGD_ThruGrade
+0028       Hide Grid Column(FC Grid, GC Potency)
+0029    End If
+0030    //
+0031    If VA frm_cPotencyControlFlag is equal to "Y"
+0032       FC From Potency = VA frm_FRMP_FromPotency
+0033       Show Control(FC From Potency)
+0034       Show Control(FC Thru Potency)
+0035       FC Thru Potency = VA frm_THRP_ThruPontency
+0036       Hide Grid Column(FC Grid, GC Grade)
+0037    End If
+0038    //
+0039    If VA frm_cGradeControlFlag is equal to "N"
+0040       Hide Grid Column(FC Grid, GC Grade)
+0041    End If
+0042    If VA frm_cPotencyControlFlag is equal to "N"
+0043       Hide Grid Column(FC Grid, GC Potency)
+0044    End If
+0045    //
+0046    //       Only perform if Calling Application != 'P'  (Purchasing)
+0047    //         If Branch/plant value is passed into app, get details about lot
+0048    //
+0049    If FI CallingApplication is not equal to "P"
+0050       VA frm_szOrigLOCN = GB Location (DB form)
+0051       VA frm_szOrigLot = FI Lot
+0052       //
+0053       // SAR 2969659 - Deleted system functions that hid the expiration date column an
+0054       // showed the expiration date column since now we will show it all the time.
+0055       // In Dialog is initialized, however, we will disable or enable editing of it
+0056       // based on whether it is called by purchasing or not.  RM5906864 08/16/99
+0057       //
+0058       If VA frm_SRCE_LotProcessType is not equal to "4"
+0059          F4108 Get Lot Master Information
+                 GC Lot Grade <- szGrade
+                 GB Lot Potency <- mnPotency
+                 UNDEFINED X szLotDescription
+                 GB Expiration Date <- jdExpirationDate
+                 GB Lot  Status Cd <- cLotStatus
+                 GB Supplier Lot Number <- szVendorLotNumber
+                 FI IdentifierShortItem -> mnShortItemNumber
+                 FI CostCenter -> szBranchPlant
+                 FI Lot -> szLotNumber
+                 UNDEFINED X mnOrderNumber
+                 GB Memo Lot 1 <- szMemoLot1
+                 GB Memo Lot 2 <- szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 UNDEFINED X jdDateUserDefinedDat004
+                 UNDEFINED X jdBasedOnDate
+                 UNDEFINED X jdOnHandDate
+                 UNDEFINED X jdLotEffectivityDate
+                 UNDEFINED X jdSellByDate
+                 UNDEFINED X jdBestBeforeDate
+                 UNDEFINED X jdUserLotDate1
+                 UNDEFINED X jdUserLotDate2
+                 UNDEFINED X jdUserLotDate3
+                 UNDEFINED X jdUserLotDate4
+                 UNDEFINED X jdUserLotDate5
+                 UNDEFINED X mnCostWorkOrderNumber
+                 UNDEFINED X cLotReusableFlag
+0060          Hide Grid Column(FC Grid, GC Lot Status Cd)
+0061       Else
+0062          // Lot Process Type == 4, show appropriate fields.
+0063          Show Control(FC Supplier Lot(Purch))
+0064          Show Control(FC Memo Lot 2(Purch))
+0065          Show Control(FC Memo Lot 1(Purch))
+0066          Show Control(FC Default:)
+0067          Show Grid Column(FC Grid, GC Lot Status Cd)
+0068          //
+0069          Hide Control(FC To Lot)
+0070          Hide Control(FC From Lot)
+0071          Hide Control(FC Memo Lot 1)
+0072          Hide Control(FC Memo Lot 2)
+0073          Hide Control(FC Location)
+0074       End If
+0075       //           Get Lot Master Info, and write the original record to cache
+0076       // ~~~~Begin SAR 6522660 - Passed GB Supplier Lot number instead of
+0077       // ~~~~FI szVendorLotNumber since the FI szVendorLotNumber value is blank.
+0078 !       Cache, Update Memory
+     !          FC Item Number -> szItemNumber
+     !          FI CostCenter -> szBranchPlant
+     !          GB Location (DB form) [HIDDEN] -> szLocation
+     !          FI Lot -> szLotNumber
+     !          FI Unitsquantityshipped -> mnQuantity
+     !          FC Order Qty UOM -> szUnitOfMeasure
+     !          "1" -> cSuppressErrorMessage
+     !          "A" -> cActionCode
+     !          VA frm_szErrorMessage <- szErrorMessage
+     !          "1" -> nSequenceNumber
+     !          FI szMemoLotField1 -> szMemoLot1
+     !          FI szMemoLotField2 -> szMemoLot2
+     !          FI szVendorLotNumber -> szVendorLotNumber
+     !          FI Promiseddeliverydate -> jdDateLayerExpiration
+     !          FI mnUnitsSecondaryQtyOr -> mnDualQuantity
+     !          FC DualUOM -> szUnitOfMeasureSecondary
+     !          FI jdBasedOnDate -> jdBasedOnDate
+     !          FI jdLotEffectivityDate -> jdLotEffectivityDate
+     !          FI Datetransactionjulian -> jdOnHandDate
+     !          FI jdSellByDate -> jdSellByDate
+     !          FI jdBestBeforeDate -> jdBestBeforeDate
+     !          FI jdUserLotDate1 -> jdUserLotDate1
+     !          FI jdUserLotDate2 -> jdUserLotDate2
+     !          FI jdUserLotDate3 -> jdUserLotDate3
+     !          FI jdUserLotDate4 -> jdUserLotDate4
+     !          FI jdUserLotDate5 -> jdUserLotDate5
+0079       Cache, Update Memory
+              FC Item Number -> szItemNumber
+              FI CostCenter -> szBranchPlant
+              GB Location (DB form) [HIDDEN] -> szLocation
+              FI Lot -> szLotNumber
+              FI Unitsquantityshipped -> mnQuantity
+              FC Order Qty UOM -> szUnitOfMeasure
+              "1" -> cSuppressErrorMessage
+              "A" -> cActionCode
+              VA frm_szErrorMessage <- szErrorMessage
+              "1" -> nSequenceNumber
+              FI szMemoLotField1 -> szMemoLot1
+              FI szMemoLotField2 -> szMemoLot2
+              GB Supplier Lot Number -> szVendorLotNumber
+              FI Promiseddeliverydate -> jdDateLayerExpiration
+              FI mnUnitsSecondaryQtyOr -> mnDualQuantity
+              FC DualUOM -> szUnitOfMeasureSecondary
+              FI jdBasedOnDate -> jdBasedOnDate
+              FI jdLotEffectivityDate -> jdLotEffectivityDate
+              FI Datetransactionjulian -> jdOnHandDate
+              FI jdSellByDate -> jdSellByDate
+              FI jdBestBeforeDate -> jdBestBeforeDate
+              FI jdUserLotDate1 -> jdUserLotDate1
+              FI jdUserLotDate2 -> jdUserLotDate2
+              FI jdUserLotDate3 -> jdUserLotDate3
+              FI jdUserLotDate4 -> jdUserLotDate4
+              FI jdUserLotDate5 -> jdUserLotDate5
+0080       // ~~~~End SAR 6522660
+0081    End If
+0082 End If
+0083 //
+0084 // assign Sequence Number to be used to generate the Multi Location cache
+0085 //
+0086 VA frm_INT01_SequenceNumber = 2
+0087 //
+0088 // Input parameter FI PreventNegOnHand is used to control two processing values:
+0089 // Prevent NegOnHand and AllowOverShipment. If the input value equals '0',
+0090 // both processing values are equal to zero. If the input value equals '1', both
+0091 // both processing values equal '1'. If the input value equal '2', processing
+0092 // value PreventNegOnHand equals '1' and AllowOverShipment equals '0'. If
+0093 // the input value equals 3', processing value AllowOverShipment equals '1'
+0094 // and PreventNegOnHand equals '0'.
+0095 //
+0096 If FI cPreventNegOnHand is equal to "1"
+     Or FI cPreventNegOnHand is equal to "2"
+0097    VA frm_PreventNegOnHand = "1"
+0098 Else
+0099    VA frm_PreventNegOnHand = "0"
+0100 End If
+0101 //
+0102 If FI cPreventNegOnHand is equal to "1"
+     Or FI cPreventNegOnHand is equal to "3"
+0103    VA frm_PreventPartialShipment = "1"
+0104 Else
+0105    VA frm_PreventPartialShipment = "0"
+0106 End If
+
+-----------------------------------------------------------------------
+     EVENT:  Grid Record is Fetched
+-----------------------------------------------------------------------
+     evt_AvailableQuantity
+     evt_SequenceNumberSearch
+     evt_DisplayDecimalQAVE1_MATH01
+0001 //
+0002 //        If called by a Purchasing app, and LOCN is blank, find the primary
+0003 //         LOCN, and write to cache as original record.
+0004 //
+0005 If VA frm_cDoOnce is not equal to "1"
+0006    If FI CallingApplication is equal to "P"
+0007       If FI Location is equal to <Blank>
+           And FI Lot is equal to <Blank>
+0008          If BC Primary Location (P/S) is equal to "P"
+              And BC Business Unit is equal to VA frm_szOrigMCU
+0009             F4100 Format Location
+                    BC Business Unit (F41021) -> szCostCenter
+                    GC Location <- szDisplayFormatLocation
+                    BC Location (F41021) -> szFileFormatLocation
+                    "4" -> cValidate
+                    UNDEFINED X szAisle
+                    UNDEFINED X szBin
+                    UNDEFINED X szLocation3
+                    UNDEFINED X szLocation4
+                    UNDEFINED X szLocation5
+                    UNDEFINED X szLocation6
+                    UNDEFINED X szLocation7
+                    UNDEFINED X szLocation8
+                    UNDEFINED X szLocation9
+                    UNDEFINED X szLocation10
+                    "1" -> cMode
+                    UNDEFINED X idBranchConstantRecord
+0010             VA frm_szOrigLOCN = BC Location
+0011             VA frm_szOrigLot = BC Lot
+0012             Cache, Update Memory
+                    FC Item Number -> szItemNumber
+                    BC Business Unit (F41021) -> szBranchPlant
+                    BC Location (F41021) -> szLocation
+                    BC Lot/Serial Number (F41021) -> szLotNumber
+                    UNDEFINED X szCatalogNumber
+                    UNDEFINED X mnSupplierNumber
+                    UNDEFINED X mnOrderNumber
+                    UNDEFINED X szDocumentType
+                    UNDEFINED X szKeyCompany
+                    UNDEFINED X szSuffixNumber
+                    FI Unitsquantityshipped -> mnQuantity
+                    FC Order Qty UOM -> szUnitOfMeasure
+                    "1" -> cSuppressErrorMessage
+                    "A" -> cActionCode
+                    VA frm_szErrorMessage <- szErrorMessage
+                    UNDEFINED X mnOrderLineNumber
+                    "1" -> nSequenceNumber
+                    UNDEFINED X szMemoLot1
+                    UNDEFINED X szMemoLot2
+                    UNDEFINED X szMemoLot3
+                    UNDEFINED X szVendorLotNumber
+                    UNDEFINED X jdDateLayerExpiration
+                    UNDEFINED X cLotStatusCode
+                    UNDEFINED X mnIdentifierShortItem
+                    UNDEFINED X mnQtyOnHandPrimaryUn
+                    UNDEFINED X mnLotPotency
+                    UNDEFINED X szLotGrade
+                    UNDEFINED X szDescriptionLine1
+                    UNDEFINED X cStockingType
+                    UNDEFINED X mnQuantityAvailable
+                    FI mnUnitsSecondaryQtyOr -> mnDualQuantity
+                    FC DualUOM -> szUnitOfMeasureSecondary
+                    UNDEFINED X jdBasedOnDate
+                    UNDEFINED X jdLotEffectivityDate
+                    UNDEFINED X jdOnHandDate
+                    UNDEFINED X jdSellByDate
+                    UNDEFINED X jdBestBeforeDate
+                    UNDEFINED X jdUserLotDate1
+                    UNDEFINED X jdUserLotDate2
+                    UNDEFINED X jdUserLotDate3
+                    UNDEFINED X jdUserLotDate4
+                    UNDEFINED X jdUserLotDate5
+                    UNDEFINED X cBasePriceIndicator
+                    UNDEFINED X cAdjustmentIndicator
+                    UNDEFINED X mnAdjustmentRevisionLevel
+                    UNDEFINED X cPriceOverrideCode
+0013             VA frm_cDoOnce = "1"
+0014          End If
+0015       Else
+0016          VA frm_szOrigLOCN = FI Location
+0017          VA frm_szOrigLot = FI Lot
+0018          Cache, Update Memory
+                 FC Item Number -> szItemNumber
+                 VA frm_szOrigMCU -> szBranchPlant
+                 VA frm_szOrigLOCN -> szLocation
+                 VA frm_szOrigLot -> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szDocumentType
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 FI Unitsquantityshipped -> mnQuantity
+                 FC Order Qty UOM -> szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "A" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 UNDEFINED X mnOrderLineNumber
+                 "1" -> nSequenceNumber
+                 FI szMemoLotField1 <> szMemoLot1
+                 FI szMemoLotField2 <> szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 FI szVendorLotNumber <> szVendorLotNumber
+                 FI jdDate - Lot Expiration <> jdDateLayerExpiration
+                 UNDEFINED X cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 UNDEFINED X mnLotPotency
+                 UNDEFINED X szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 FI mnUnitsSecondaryQtyOr -> mnDualQuantity
+                 FC DualUOM -> szUnitOfMeasureSecondary
+                 FI jdBasedOnDate <> jdBasedOnDate
+                 FI jdLotEffectivityDate <> jdLotEffectivityDate
+                 FI Datetransactionjulian <> jdOnHandDate
+                 FI jdSellByDate <> jdSellByDate
+                 FI jdBestBeforeDate <> jdBestBeforeDate
+                 FI jdUserLotDate1 <> jdUserLotDate1
+                 FI jdUserLotDate2 <> jdUserLotDate2
+                 FI jdUserLotDate3 <> jdUserLotDate3
+                 FI jdUserLotDate4 <> jdUserLotDate4
+                 FI jdUserLotDate5 <> jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0019          VA frm_cDoOnce = "1"
+0020       End If
+0021    End If
+0022 End If
+0023 //
+0024 //         IF CALLED BY PURCHASING, AND SRCE = 4 - 7. SUPPRESS THE
+0025 //         RECORDS THAT HAVE A LOT NUMBER ALREADY ASSIGNED.
+0026 //
+0027 If FI CallingApplication is equal to "P"
+0028    If GC Lot /Serial is not equal to <Blank>
+        And VA frm_SRCE_LotProcessType is equal to "4,5,6,7"
+0029       Suppress Grid Line(FC Grid)
+0030       Stop Processing
+0031    End If
+0032 End If
+0033 //
+0034 // Ship Ascending Date - Only for Sales
+0035 // If PO is set to Error, don't display the line that doesn't satisfy the rules.
+0036 //
+0037 IfFI CallingApplicationis equal to"S"AndFI cShipAscendingDateFlagis equal to"1"AndFI cPOErrorOrWarningis equal to"1"AndBC Lot/Serial Number (F41021)is greater than<Blank>
+0038    IfFI cCheckExpirationDateis equal to"1"OrFI cCheckBestBeforeDateis equal to"1"OrFI cCheckSellByDateis equal to"1"
+0039       // SAR 6176832 - Pass in '4' to the issue warning/error parameter. In that the
+0040       // error will be returned and we will supress the record without issuing the
+0041       // error to the user.
+0042       Edit Ship Ascending Dates
+              BC Item Number - Short (F41021) -> mnShortItemNumber_ITM
+              BC Lot/Serial Number (F41021) -> szLotNumber_LOTN
+              BC Business Unit (F41021) -> szBusinessUnit_MCU
+              FI mnAddressNumberShipTo -> mnShipToAddressNumber_SHAN
+              UNDEFINED X idLotMasterPTR_GENLNG
+              FI cCheckExpirationDate -> cCheckExpirationDate_EDCK
+              FI cCheckSellByDate -> cCheckSellByDate_SBCK
+              FI cCheckBestBeforeDate -> cCheckBestBeforeDate_BBCK
+              UNDEFINED X cOverrideCommitDateMethod_CMDM
+              VA frm_szSADErrorMessage_DTAI <- szErrorMessageID_DTAI
+              "4" -> cOnlyIssueWarning_EV01
+0043       If VA frm_szSADErrorMessage_DTAI is not equal to <Blank> And VA frm_szSADErrorMessage_DTAI is not equal to <Null>
+0044          Suppress Grid Line(FC Grid)
+0045          VA frm_szSADErrorMessage_DTAI = " "
+0046       End If
+0047    End If
+0048 End If
+0049 //
+0050 //  SAR 3102694   07/15/99  added "OR"
+0051 If VA frm_SRCE_LotProcessType is not equal to "4"
+     Or FI CallingApplication is equal to "S"
+0052    //
+0053    //        Inquire (ActionCode =I ) to see if record already exists in cache,
+0054    //       If record exists, suppress the Grid Record
+0055    //
+0056    // *** This test was modified to resolve SAR 2022490 ***
+0057    VA evt_SequenceNumberSearch = 1
+0058    While VA evt_SequenceNumberSearch is less than or equal to VA frm_INT01_SequenceNumber
+0059       Cache, Update Memory
+              FC Item Number -> szItemNumber
+              BC Business Unit (F41021) -> szBranchPlant
+              BC Location (F41021) -> szLocation
+              BC Lot/Serial Number (F41021) -> szLotNumber
+              UNDEFINED X szCatalogNumber
+              UNDEFINED X mnSupplierNumber
+              FI Documentorderinvoicee X mnOrderNumber
+              FI Ordertype X szDocumentType
+              FI Companykeyorderno X szKeyCompany
+              FI Ordersuffix X szSuffixNumber
+              UNDEFINED X mnQuantity
+              UNDEFINED X szUnitOfMeasure
+              "1" -> cSuppressErrorMessage
+              "I" -> cActionCode
+              VA frm_szErrorMessage <- szErrorMessage
+              FI Linenumber X mnOrderLineNumber
+              VA evt_SequenceNumberSearch -> nSequenceNumber
+              UNDEFINED X szMemoLot1
+              UNDEFINED X szMemoLot2
+              UNDEFINED X szMemoLot3
+              UNDEFINED X szVendorLotNumber
+              UNDEFINED X jdDateLayerExpiration
+              UNDEFINED X cLotStatusCode
+              UNDEFINED X mnIdentifierShortItem
+              UNDEFINED X mnQtyOnHandPrimaryUn
+              UNDEFINED X mnLotPotency
+              UNDEFINED X szLotGrade
+              UNDEFINED X szDescriptionLine1
+              UNDEFINED X cStockingType
+              UNDEFINED X mnQuantityAvailable
+              UNDEFINED X mnDualQuantity
+              UNDEFINED X szUnitOfMeasureSecondary
+              UNDEFINED X jdBasedOnDate
+              UNDEFINED X jdLotEffectivityDate
+              UNDEFINED X jdOnHandDate
+              UNDEFINED X jdSellByDate
+              UNDEFINED X jdBestBeforeDate
+              UNDEFINED X jdUserLotDate1
+              UNDEFINED X jdUserLotDate2
+              UNDEFINED X jdUserLotDate3
+              UNDEFINED X jdUserLotDate4
+              UNDEFINED X jdUserLotDate5
+              UNDEFINED X cBasePriceIndicator
+              UNDEFINED X cAdjustmentIndicator
+              UNDEFINED X mnAdjustmentRevisionLevel
+              UNDEFINED X cPriceOverrideCode
+0060       If VA frm_szErrorMessage is equal to <Blank>
+0061          Suppress Grid Line(FC Grid)
+0062          Stop Processing
+0063       End If
+0064       VA evt_SequenceNumberSearch = [VA evt_SequenceNumberSearch]+1
+0065    End While
+0066    //
+0067    //       If there is a LOT#, get details about it
+0068    //
+0069    If BC Lot/Serial Number (F41021) is not equal to <Blank>
+0070       F4108 Get Lot Master Information
+              GC Lot Grade <- szGrade
+              GC Lot Potency <- mnPotency
+              GC Expiration Date <- jdExpirationDate
+              GC Supplier Lot Number <- szVendorLotNumber
+              BC Item Number - Short (F41021) -> mnShortItemNumber
+              BC Business Unit (F41021) -> szBranchPlant
+              BC Lot/Serial Number (F41021) -> szLotNumber
+              GC Memo Lot 1 <- szMemoLot1
+              GC Memo Lot 2 <- szMemoLot2
+              GC Based On Date <- jdBasedOnDate
+              GC On Hand Date [HIDDEN] <- jdOnHandDate
+              GC Lot Effective Date <- jdLotEffectivityDate
+              GC Sell By Date [HIDDEN] <- jdSellByDate
+              GC Best Before Date [HIDDEN] <- jdBestBeforeDate
+              GC User Lot Date 1 [HIDDEN] <- jdUserLotDate1
+              GC User Lot Date 2 [HIDDEN] <- jdUserLotDate2
+              GC User Lot Date 3 [HIDDEN] <- jdUserLotDate3
+              GC User Lot Date 4 [HIDDEN] <- jdUserLotDate4
+              GC User Lot Date 5 [HIDDEN] <- jdUserLotDate5
+0071    End If
+0072    //
+0073    //
+0074    // * Updated for SAR# 3772698  SK6005857  02/22/00
+0075    //      If the Location master has a status code, and this
+0076    //       appl is not called by Purchasing and Manufacturing, suppress the record
+0077    //
+0078    If BC Lot Status Code (F41021) is not equal to <Blank>
+        And FI CallingApplication is not equal to "M,P"
+0079       Suppress Grid Line(FC Grid)
+0080    End If
+0081    //
+0082    //
+0083    // * SAR# 3772698  SK6005857  02/22/00
+0084    // A  Lot has a Lot Hold Code specified in the proc. opt. of P31113  is displaye
+0085    // on Select Multiple Locations screen.
+0086    If FI CallingApplication is equal to "M"
+0087       If FI cLotHoldCode1 is equal to "*"
+           Or FI cLotHoldCode2 is equal to "*"
+           Or FI cLotHoldCode3 is equal to "*"
+           Or FI cLotHoldCode4 is equal to "*"
+           Or FI cLotHoldCode5 is equal to "*"
+0088          Show Grid Row(FC Grid,  <All Rows>)
+0089       Else
+0090          If FI cLotHoldCode1 is not equal to BC Lot Status Code (F41021)
+              And FI cLotHoldCode2 is not equal to BC Lot Status Code (F41021)
+              And FI cLotHoldCode3 is not equal to BC Lot Status Code (F41021)
+              And FI cLotHoldCode4 is not equal to BC Lot Status Code (F41021)
+              And FI cLotHoldCode5 is not equal to BC Lot Status Code (F41021)
+0091             Suppress Grid Line(FC Grid)
+0092          End If
+0093       End If
+0094    End If
+0095    // END SAR# 3772698
+0096    //
+0097    //
+0098    // ******************* P40SEL logic to filter records ***********
+0099    // If the Memo Lot or Supplier Lot or Location fields in the Form have
+0100    // user entered values, suppress the records that do not match
+0101    // the values in the Form Control fields.
+0102    //
+0103    If FC Location is not equal to <Blank>
+0104       If BC Location (F41021) is not equal to FC Location
+0105          Suppress Grid Line(FC Grid)
+0106       End If
+0107    End If
+0108    If FC Memo Lot 1 is not equal to  <Blank>
+0109       If GC Memo Lot 1 is not equal to FC Memo Lot 1
+0110          Suppress Grid Line(FC Grid)
+0111       End If
+0112    End If
+0113    If FC Memo Lot 2 is not equal to <Blank>
+0114       If GC Memo Lot 2 is not equal to FC Memo Lot 2
+0115          Suppress Grid Line(FC Grid)
+0116       End If
+0117    End If
+0118    //
+0119    If FC From Lot is not equal to <Blank>
+0120       If BC Lot/Serial Number (F41021) is less than FC From Lot
+0121          Suppress Grid Line(FC Grid)
+0122       End If
+0123    End If
+0124    If FC To Lot is not equal to <Blank>
+0125       If BC Lot/Serial Number (F41021) is greater than FC To Lot
+0126          Suppress Grid Line(FC Grid)
+0127       End If
+0128    End If
+0129    //
+0130    // ******************* End P40SEL logic
+0131    //
+0132    //       Display only records that are within potency or grade requirements
+0133    //        Only check for potency and Grade if Lot != Blank
+0134    //
+0135    If BC Lot/Serial Number (F41021) is not equal to <Blank>
+        And VA frm_SRCE_LotProcessType is not equal to "4"
+0136       If FC From Potency is not equal to  <Blank>
+           And FC Thru Potency is not equal to  <Blank>
+0137          If GC Potency is less than FC From Potency
+              Or GC Potency is greater than FC Thru Potency
+0138             Suppress Grid Line(FC Grid)
+0139          End If
+0140       End If
+0141       //
+0142       If FC From Grade is not equal to  <Blank>
+           And FC Thru Grade is not equal to  <Blank>
+0143          If GC Grade is less than FC From Grade
+              Or GC Grade is greater than FC Thru Grade
+0144             Suppress Grid Line(FC Grid)
+0145          End If
+0146       End If
+0147    End If
+0148    //
+0149 Else
+0150    If BC Lot/Serial Number (F41021) is not equal to  <Blank>
+0151       Suppress Grid Line(FC Grid)
+0152    End If
+0153 End If
+0154 // *********** End if Lot Process Type ! = 4 ********
+0155 //
+0156 //        Calculate quantity available in the lot unless this app is called by
+0157 //       a purchasing application.  If no available, suppress the grid row
+0158 //        If LOT is expired and calling app is not P, suppress the grid line
+0159 //
+0160 //
+0161 // ** begin changes for SAR 1784759
+0162 //
+0163 If FI CallingApplication is not equal to "P"
+0164    //
+0165    // SAR 3235358   WO6022340    02/23/2000
+0166    // To call B4101220 instead of B3100380
+0167    // SAR 6395517 - Pass in Truncate or Round Flag
+0168    //
+0169    F41021 Calculate Quantity Available Shell
+           BC Item Number - Short (F41021) -> mnShortItemNumber
+           BC Business Unit (F41021) -> szBranchPlant
+           BC Location (F41021) -> szLocation
+           BC Lot/Serial Number (F41021) -> szLotNumber
+           FC From Potency -> mnFromPotency
+           FC Thru Potency -> mnThruPotency
+           FC From Grade -> szFromGrade
+           FC Thru Grade -> szThruGrade
+           VA frm_szPrimaryUoM -> szPrimaryUOM
+           FC Order Qty UOM -> szSecondaryUOM
+           "1" -> cSuppressErrorMessages
+           GC Available <- mnQuantityAvailable
+           "1" -> mnIndex
+           VA frm_cStandardUOMFlag -> szStandardUOMFlag
+           VA frm_cPotencyControlFlag -> cPotencyControl
+           VA frm_cTruncOrRound_EV01 -> cTruncOrRound
+           GC Quantity On Hand [HIDDEN] <- mnQtyOnHand
+           "4" -> mnKeys
+0170    //
+0171    // SAR 4674918 begin
+0172    // If dual item, need to get back secondary available and secondary on hand
+0173    // SAR 6395517 - Pass in Truncate or Round Flag
+0174    // SAR 6526564 - Changed the ' If ' condition
+0175    If VA frm_DualUnitOfMeasureItem is not equal to <Blank> And VA frm_DualUnitOfMeasureItem is not equal to <Null>
+0176       F41021 Calculate Quantity Available Shell
+              BC Item Number - Short (F41021) -> mnShortItemNumber
+              BC Business Unit (F41021) -> szBranchPlant
+              BC Location (F41021) -> szLocation
+              BC Lot/Serial Number (F41021) -> szLotNumber
+              FC From Potency -> mnFromPotency
+              FC Thru Potency -> mnThruPotency
+              FC From Grade -> szFromGrade
+              FC Thru Grade -> szThruGrade
+              VA frm_ItemMasterUOM2 -> szPrimaryUOM
+              FC DualUOM -> szSecondaryUOM
+              "1" -> cSuppressErrorMessages
+              GC Secondary Available <- mnQuantityAvailable
+              "1" -> mnIndex
+              VA frm_cStandardUOMFlag -> szStandardUOMFlag
+              VA frm_cPotencyControlFlag -> cPotencyControl
+              VA frm_cTruncOrRound_EV01 -> cTruncOrRound
+              GC SecondaryQuantity On Hand [HIDDEN] <- mnQtyOnHand
+              "4" -> mnKeys
+0177    End If
+0178    // SAR 4674918 end
+0179    //
+0180    // SAR 3235358 END
+0181    //
+0182    // SAR 4674918 begin
+0183    If VA frm_DualPickingProcessOption is equal to "1"
+0184       If GC SecondaryAvailable is less than or equal to <Zero>
+           And VA frm_cCheckAvailableFlag is equal to "Y"
+           And FI AvailabilityCheckFlag is equal to "1"
+0185          Suppress Grid Line(FC Grid)
+0186          Stop Processing
+0187       End If
+0188    Else
+0189       If GC Available is less than or equal to <Zero>
+           And VA frm_cCheckAvailableFlag is equal to "Y"
+           And FI AvailabilityCheckFlag is equal to "1"
+0190          Suppress Grid Line(FC Grid)
+0191          Stop Processing
+0192       End If
+0193    End If
+0194    // SAR 4674918 end
+0195    //
+0196    If GC ExpirationDate is less than VA frm_date01_TodaysDate
+        And BC Lot is not equal to  <Blank>
+0197       Suppress Grid Line(FC Grid)
+0198       Stop Processing
+0199    End If
+0200 End If
+0201 //
+0202 //     end changes for SAR 1784759 **
+0203 //
+0204 //      Reformat the location from DB format to Display format.
+0205 //
+0206 F4100 Format Location
+        BC Business Unit (F41021) -> szCostCenter
+        GC Location <- szDisplayFormatLocation
+        BC Location (F41021) -> szFileFormatLocation
+        "4" -> cValidate
+        UNDEFINED X szAisle
+        UNDEFINED X szBin
+        UNDEFINED X szLocation3
+        UNDEFINED X szLocation4
+        UNDEFINED X szLocation5
+        UNDEFINED X szLocation6
+        UNDEFINED X szLocation7
+        UNDEFINED X szLocation8
+        UNDEFINED X szLocation9
+        UNDEFINED X szLocation10
+        "1" -> cMode
+        UNDEFINED X idBranchConstantRecord
+0207 GC UM = FC Order Qty UOM
+0208 // SAR 4674918 begin
+0209 GC SecondaryUM = FC DualUOM
+0210 // SAR 4674918 end
+0211 //
+0212 // assign previous values to columns related to cache key processing
+0213 //
+0214 GC CTRL Branch = GC BranchPlant
+0215 GC CTRL LOCN = BC Location
+0216 GC ControlLot Number = BC Lot/Serial Number (F41021)
+0217 //
+0218 // SAR 5510780
+0219 GC PrimaryLocation = BC Primary Location (P/S) (F41021)
+0220 //
+0221 // SAR 4908139 begin:
+0222 VA frm_ShortItemNo_ITM = BC Item Number - Short (F41021)
+0223 // SAR 4908139 end
+0224 //
+
+-----------------------------------------------------------------------
+     EVENT:  Last Grid Record Has Been Read
+-----------------------------------------------------------------------
+0001 //
+0002 //      Set LastRecordRead==0, so Cache, Get Memory reads from top of cache
+0003 //
+0004 VA frm_cLastRecordRead = "0"
+0005 VA frm_GENLNG_IDCursor = "0"
+0006 //
+0007 // ** SK6005857  SAR#2514056  06/29/99
+0008 //
+0009 // Begin SAR 5488113
+0010 // Store the cursor in frm_GENLNG_HoldCursorID
+0011 VA frm_GENLNG_HoldCursorID = 0
+0012 Cache, Get Memory
+        UNDEFINED X szItemNumber
+        UNDEFINED X szBranchPlant
+        UNDEFINED X szLocation
+        UNDEFINED X szLotNumber
+        UNDEFINED X szCatalogNumber
+        UNDEFINED X mnSupplierNumber
+        UNDEFINED X mnOrderNumber
+        UNDEFINED X szKeyCompany
+        UNDEFINED X szSuffixNumber
+        UNDEFINED X mnOrderLineNumber
+        VA frm_cLastRecordRead -> cLastRecordReadFlag
+        UNDEFINED X szDocumentType
+        UNDEFINED X mnQuantity
+        UNDEFINED X szUnitOfMeasure
+        UNDEFINED X cSuppressTerminateCache
+        UNDEFINED X mnUnitCost
+        UNDEFINED X nSequenceNumber
+        GB Memo Lot 1 -> szMemoLot1
+        GB Memo Lot 2 -> szMemoLot2
+        UNDEFINED X szMemoLot3
+        VA frm_GENLNG_HoldCursorID <> idCacheCursor
+        GB Supplier Lot Number -> szVendorLotNumber
+        UNDEFINED X jdDateLayerExpiration
+        UNDEFINED X cLotStatusCode
+        UNDEFINED X mnIdentifierShortItem
+        UNDEFINED X mnQtyOnHandPrimaryUn
+        UNDEFINED X mnLotPotency
+        UNDEFINED X szLotGrade
+        UNDEFINED X szDescriptionLine1
+        UNDEFINED X cStockingType
+        UNDEFINED X mnQuantityAvailable
+        UNDEFINED X mnDualQuantity
+        UNDEFINED X szUnitOfMeasureSecondary
+        UNDEFINED X jdBasedOnDate
+        UNDEFINED X jdLotEffectivityDate
+        UNDEFINED X jdOnHandDate
+        UNDEFINED X jdSellByDate
+        UNDEFINED X jdBestBeforeDate
+        UNDEFINED X jdUserLotDate1
+        UNDEFINED X jdUserLotDate2
+        UNDEFINED X jdUserLotDate3
+        UNDEFINED X jdUserLotDate4
+        UNDEFINED X jdUserLotDate5
+        UNDEFINED X cBasePriceIndicator
+        UNDEFINED X cAdjustmentIndicator
+        UNDEFINED X mnAdjustmentRevisionLevel
+        UNDEFINED X cPriceOverrideCode
+0013 // End SAR 5488113
+0014 //
+0015 //         While there are records in cache, unload them to the Gridbuffer.
+0016 //        Reformat location from DB to Display format
+0017 //        Recalc the available quantity and get the potency/grade values.
+0018 //        Insert each GB record to the grid at first grid row.
+0019 //
+0020 VA frm_GENLNG_IDCursor = "0"
+0021 //
+0022 While VA frm_cLastRecordRead is not equal to "1"
+0023    Clear Grid Buffer(FC Grid)
+0024    // SAR 5697661 - Retrieve all the Multiple Lot Dates; otherwise, they will not
+0025    // show up when user hit the "update grid" icon.
+0026    Cache, Get Memory
+           GB Item Number [HIDDEN] <- szItemNumber
+           GB Branch Plant <- szBranchPlant
+           GB Location (DB form) [HIDDEN] <- szLocation
+           GB Lot / Serial <- szLotNumber
+           UNDEFINED X szCatalogNumber
+           UNDEFINED X mnSupplierNumber
+           UNDEFINED X mnOrderNumber
+           UNDEFINED X szKeyCompany
+           UNDEFINED X szSuffixNumber
+           UNDEFINED X mnOrderLineNumber
+           VA frm_cLastRecordRead <> cLastRecordReadFlag
+           UNDEFINED X szDocumentType
+           GB Quantity <- mnQuantity
+           GB UM <- szUnitOfMeasure
+           "1" -> cSuppressTerminateCache
+           UNDEFINED X mnUnitCost
+           GB Sequence Number [HIDDEN] <- nSequenceNumber
+           GB Memo Lot 1 <> szMemoLot1
+           GB Memo Lot 2 <> szMemoLot2
+           UNDEFINED X szMemoLot3
+           VA frm_GENLNG_IDCursor <> idCacheCursor
+           GB Supplier Lot Number <> szVendorLotNumber
+           GB Expiration Date <> jdDateLayerExpiration
+           GB Lot  Status Cd <> cLotStatusCode
+           UNDEFINED X mnIdentifierShortItem
+           UNDEFINED X mnQtyOnHandPrimaryUn
+           GC Lot Potency <- mnLotPotency
+           GB Lot Grade <- szLotGrade
+           UNDEFINED X szDescriptionLine1
+           UNDEFINED X cStockingType
+           UNDEFINED X mnQuantityAvailable
+           GB Secondary Quantity <- mnDualQuantity
+           GB Secondary UM <- szUnitOfMeasureSecondary
+           GB Based On Date <- jdBasedOnDate
+           GB Lot Effective Date <- jdLotEffectivityDate
+           GB On Hand Date [HIDDEN] <- jdOnHandDate
+           GB Sell By Date [HIDDEN] <- jdSellByDate
+           GB Best Before Date [HIDDEN] <- jdBestBeforeDate
+           GB User Lot Date 1 [HIDDEN] <- jdUserLotDate1
+           GB User Lot Date 2 [HIDDEN] <- jdUserLotDate2
+           GB User Lot Date 3 [HIDDEN] <- jdUserLotDate3
+           GB User Lot Date 4 [HIDDEN] <- jdUserLotDate4
+           GB User Lot Date 5 [HIDDEN] <- jdUserLotDate5
+           UNDEFINED X cBasePriceIndicator
+           UNDEFINED X cAdjustmentIndicator
+           UNDEFINED X mnAdjustmentRevisionLevel
+           UNDEFINED X cPriceOverrideCode
+0027    // ===============================================================
+0028    // Assign the FI ITM to the GB before calling X41DUP and inserting the grid
+0029    // buffer row.  SAR 3305651 KH5712189 8/99
+0030    //
+0031    GB ShortItem No = FI IdentifierShortItem
+0032    //
+0033    If VA frm_cLastRecordRead is not equal to "1"
+0034       F4100 Format Location
+              GB Branch Plant -> szCostCenter
+              GB Location <- szDisplayFormatLocation
+              GB Location (DB form) [HIDDEN] -> szFileFormatLocation
+              "4" -> cValidate
+              UNDEFINED X szAisle
+              UNDEFINED X szBin
+              UNDEFINED X szLocation3
+              UNDEFINED X szLocation4
+              UNDEFINED X szLocation5
+              UNDEFINED X szLocation6
+              UNDEFINED X szLocation7
+              UNDEFINED X szLocation8
+              UNDEFINED X szLocation9
+              UNDEFINED X szLocation10
+              "1" -> cMode
+              UNDEFINED X idBranchConstantRecord
+0035       If VA frm_SRCE_LotProcessType is not equal to "4"
+           And VA frm_SRCE_LotProcessType is not equal to "7"
+0036          // *** Changed to use FI's to get lot information AW ***
+0037          //
+0038          // **  SK6005857  SAR#2514056  06/29/99
+0039          //
+0040          // SAR 5697661 - Retrieve all the Multiple Lot Dates; otherwise, they will not
+0041          // show up when user hit the "update grid" icon.
+0042          // SAR #6026973 - Retrive Lot Grade and Potency into GB values.
+0043          F4108 Get Lot Master Information
+                 GB Lot Grade <- szGrade
+                 GB Lot Potency <- mnPotency
+                 UNDEFINED X szLotDescription
+                 GB Expiration Date <> jdExpirationDate
+                 GB Lot  Status Cd <> cLotStatus
+                 GB Supplier Lot Number -> szVendorLotNumber
+                 FI IdentifierShortItem -> mnShortItemNumber
+                 FI CostCenter -> szBranchPlant
+                 FI Lot -> szLotNumber
+                 UNDEFINED X mnOrderNumber
+                 GB Memo Lot 1 -> szMemoLot1
+                 GB Memo Lot 2 -> szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 UNDEFINED X jdDateUserDefinedDat004
+                 GB Based On Date <> jdBasedOnDate
+                 GB On Hand Date [HIDDEN] <> jdOnHandDate
+                 GB Lot Effective Date <> jdLotEffectivityDate
+                 GB Sell By Date [HIDDEN] <> jdSellByDate
+                 GB Best Before Date [HIDDEN] <> jdBestBeforeDate
+                 GB User Lot Date 1 [HIDDEN] <> jdUserLotDate1
+                 GB User Lot Date 2 [HIDDEN] <> jdUserLotDate2
+                 GB User Lot Date 3 [HIDDEN] <> jdUserLotDate3
+                 GB User Lot Date 4 [HIDDEN] <> jdUserLotDate4
+                 GB User Lot Date 5 [HIDDEN] <> jdUserLotDate5
+                 UNDEFINED X mnCostWorkOrderNumber
+                 UNDEFINED X cLotReusableFlag
+0044       End If
+0045       // For Multiple Lot Date
+0046       // If the Advanced Lot Processing is on, accept the date passed in from other
+0047       // application.
+0048       //
+0049       If VA frm_cAdvLotProcessingOn_EV01 is equal to "1"
+           And FI CallingApplication is equal to "W"
+           And FI Lot is greater than <Blank>
+0050          If FI jdLotEffectivityDate is not equal to <Null Date>
+              And GB Lot EffectiviteDate is equal to <Null Date>
+0051             GB Lot EffectiveDate = FI jdLotEffectivityDate
+0052          End If
+0053          If FI jdBasedOnDate is not equal to <Null Date>
+              And GB Based OnDate is equal to <Null Date>
+0054             GB Based OnDate = FI jdBasedOnDate
+0055          End If
+0056          If FI jdDate - Lot Expiration is not equal to <Null Date>
+              And GB ExpirationDate is equal to <Null Date>
+0057             GB ExpirationDate = FI jdDate - Lot Expiration
+0058          End If
+0059       End If
+0060       //
+0061       If FI CallingApplication is not equal to "P"
+0062          //
+0063          If VA frm_SRCE_LotProcessType is not equal to "4"
+0064             //
+0065             // SAR 3235358  WO6022340   02/23/2000
+0066             // To call B4101220 instead of B3100380
+0067             // SAR 6395517 - Pass in Truncate or Round Flag
+0068             //
+0069             F41021 Calculate Quantity Available Shell
+                    FI IdentifierShortItem -> mnShortItemNumber
+                    GB Branch Plant -> szBranchPlant
+                    GB Location (DB form) [HIDDEN] -> szLocation
+                    GB Lot / Serial -> szLotNumber
+                    FC From Potency -> mnFromPotency
+                    FC Thru Potency -> mnThruPotency
+                    FC From Grade -> szFromGrade
+                    FC Thru Grade -> szThruGrade
+                    VA frm_szPrimaryUoM -> szPrimaryUOM
+                    FC Order Qty UOM -> szSecondaryUOM
+                    "1" -> cSuppressErrorMessages
+                    GB Available <- mnQuantityAvailable
+                    VA frm_szErrorMessage <- szErrorMessageID
+                    "1" -> mnIndex
+                    VA frm_cStandardUOMFlag <- szStandardUOMFlag
+                    VA frm_cPotencyControlFlag -> cPotencyControl
+                    VA frm_cTruncOrRound_EV01 -> cTruncOrRound
+                    GB Quantity On Hand [HIDDEN] <- mnQtyOnHand
+                    "4" -> mnKeys
+0070             //
+0071             // SAR 4674918 begin
+0072             If VA frm_DualUnitOfMeasureItem is equal to "1"
+                 Or VA frm_DualUnitOfMeasureItem is equal to "2"
+0073                // SAR 6395517 - Pass in Truncate or Round Flag
+0074                F41021 Calculate Quantity Available Shell
+                       FI IdentifierShortItem -> mnShortItemNumber
+                       GB Branch Plant -> szBranchPlant
+                       GB Location (DB form) [HIDDEN] -> szLocation
+                       GB Lot / Serial -> szLotNumber
+                       FC From Potency -> mnFromPotency
+                       FC Thru Potency -> mnThruPotency
+                       FC From Grade -> szFromGrade
+                       FC Thru Grade -> szThruGrade
+                       VA frm_ItemMasterUOM2 -> szPrimaryUOM
+                       FC DualUOM -> szSecondaryUOM
+                       "1" -> cSuppressErrorMessages
+                       GB Secondary Available <- mnQuantityAvailable
+                       VA frm_szErrorMessage <- szErrorMessageID
+                       "1" -> mnIndex
+                       VA frm_cStandardUOMFlag <- szStandardUOMFlag
+                       VA frm_cPotencyControlFlag -> cPotencyControl
+                       VA frm_cTruncOrRound_EV01 -> cTruncOrRound
+                       GB SecondaryQuantity On Hand [HIDDEN] <- mnQtyOnHand
+                       "4" -> mnKeys
+0075             End If
+0076             // SAR 4674918 end
+0077             //
+0078             // SAR 3235358 END
+0079             //
+0080          Else
+0081             GB Available = "0"
+0082             // SAR 4674918 begin
+0083             GB SecondaryAvailable = "0"
+0084             // SAR 4674918 end
+0085          End If
+0086          //
+0087       End If
+0088       //
+0089       GB mnCtrlQTY = GB Quantity
+0090       //
+0091       // SAR 4674918 begin
+0092       GB mnDualCtrlQty = GB DualQuantity
+0093       // SAR 4674918 end
+0094       //
+0095       GB CTRL LOCN = GB Location (DB form)
+0096       GB ControlLot Number = GB Lot /Serial
+0097       GB CTRL Branch = GB BranchPlant
+0098       //
+0099       // SAR 5510780
+0100       GB PrimaryLocation = BC Primary Location (P/S) (F41021)
+0101       //
+0102       If GB SequenceNumber is greater than or equal to VA frm_INT01_SequenceNumber
+0103          VA frm_INT01_SequenceNumber = [GB SequenceNumber]+1
+0104       End If
+0105       //
+0106       Insert Grid Buffer Row(FC Grid, "1", <Yes>, <No>, <Yes>, <Yes>,  <Yes>)
+0107    End If
+0108 End While
+0109 //
+0110 //        If Find button has been clicked, then assign FCTotalSelectedWF from
+0111 //       SaveQuantityWF value
+0112 //
+0113 If VA frm_cResetShppedQty is equal to "1"
+0114    FC QAVALTotalSelected = FC SaveQuantityWF
+0115    VA frm_mnDelta = "0"
+0116 End If
+0117 //
+0118 // SAR 4824082 - reset variable FindButtonClicked to allow update of cache
+0119 // associated with the grid.
+0120 VA frm_EV01_FindButtonClicked = "0"
+0121 // end SAR 4824082
+0122 //
+0123 //  SAR 5030111 -  MM7128091
+0124 //  Assigning Short Item Number to Variable ,which is being used
+0125 // for BSFN  B40000920 (F4102 Get Item Manufacturing Information) assignment
+0126 ! VA frm_ShortItemNo_ITM = BC Item Number - Short (F41021)
+0127 // End SAR 5030111
+0128 //
+0129 // Begin SAR 5488113
+0130 // Free the cursor in frm_GENLNG_HoldCursorID
+0131 //
+0132 // Pass in the '1' to supress the cache terminate
+0133 Cache, Get Memory
+        UNDEFINED X szItemNumber
+        UNDEFINED X szBranchPlant
+        UNDEFINED X szLocation
+        UNDEFINED X szLotNumber
+        UNDEFINED X szCatalogNumber
+        UNDEFINED X mnSupplierNumber
+        UNDEFINED X mnOrderNumber
+        UNDEFINED X szKeyCompany
+        UNDEFINED X szSuffixNumber
+        UNDEFINED X mnOrderLineNumber
+        "1" -> cLastRecordReadFlag
+        UNDEFINED X szDocumentType
+        UNDEFINED X mnQuantity
+        UNDEFINED X szUnitOfMeasure
+        "1" -> cSuppressTerminateCache
+        UNDEFINED X mnUnitCost
+        UNDEFINED X nSequenceNumber
+        UNDEFINED X szMemoLot1
+        UNDEFINED X szMemoLot2
+        UNDEFINED X szMemoLot3
+        VA frm_GENLNG_HoldCursorID <> idCacheCursor
+        UNDEFINED X szVendorLotNumber
+        UNDEFINED X jdDateLayerExpiration
+        UNDEFINED X cLotStatusCode
+        UNDEFINED X mnIdentifierShortItem
+        UNDEFINED X mnQtyOnHandPrimaryUn
+        UNDEFINED X mnLotPotency
+        UNDEFINED X szLotGrade
+        UNDEFINED X szDescriptionLine1
+        UNDEFINED X cStockingType
+        UNDEFINED X mnQuantityAvailable
+        UNDEFINED X mnDualQuantity
+        UNDEFINED X szUnitOfMeasureSecondary
+        UNDEFINED X jdBasedOnDate
+        UNDEFINED X jdLotEffectivityDate
+        UNDEFINED X jdOnHandDate
+        UNDEFINED X jdSellByDate
+        UNDEFINED X jdBestBeforeDate
+        UNDEFINED X jdUserLotDate1
+        UNDEFINED X jdUserLotDate2
+        UNDEFINED X jdUserLotDate3
+        UNDEFINED X jdUserLotDate4
+        UNDEFINED X jdUserLotDate5
+        UNDEFINED X cBasePriceIndicator
+        UNDEFINED X cAdjustmentIndicator
+        UNDEFINED X mnAdjustmentRevisionLevel
+        UNDEFINED X cPriceOverrideCode
+0134 // End SAR 5488113
+
+-----------------------------------------------------------------------
+     EVENT:  Variable
+-----------------------------------------------------------------------
+     frm_mnDelta
+     frm_idItemBranchPointer
+     frm_cPotencyControlFlag
+     frm_cGradeControlFlag
+     frm_cCheckAvailableFlag
+     frm_idItemLocationRecord
+     frm_cActionCode
+     frm_szSecondaryUoM
+     frm_cStandardUOMFlag
+     frm_szPrimaryUoM
+     frm_szErrorMessage
+     frm_cLastRecordRead
+     frm_szOrigLot
+     frm_mnOrigShipQty
+     frm_cResetShppedQty
+     frm_szOrigMCU
+     frm_szOrigLOCN
+     frm_date01_TodaysDate
+     frm_OrigRecordFlag
+     frm_cDoOnce
+     frm_FRMP_FromPotency
+     frm_THRP_ThruPontency
+     frm_FRGD_FromGrade
+     frm_THGD_ThruGrade
+     frm_EV07_PostDialogOnce
+     frm_cEV08AddBackQty
+     frm_GENLNG_IDCursor
+     frm_SRCE_LotProcessType
+     frm_SRNR_SerialNumberRequired
+     frm_ERRC_SerialNumberError
+     frm_EV01_FindButtonClicked
+     frm_cPassedEdits_Purch
+     frm_INT01_SequenceNumber
+     frm_UnitsQuantityAvailableConv
+     frm_PreventNegOnHand
+     frm_UnitsQtyOnHandConv
+     frm_PreventPartialShipment
+     frm_SRCE_LotProcessType_SAVE
+     frm_UnitsQtyShippedPrimary
+     frm_PrimaryUomAsInput
+     frm_AllowDuplicateLots
+     frm_ShortItemNo_ITM
+     frm_DualUnitOfMeasureItem
+     frm_DualPickingProcessOption
+     frm_ItemMasterUOM2
+     frm_mnDualDelta
+     frm_cAdvLotProcessingOn_EV01
+     frm_cDuplicateLotExist_EV01
+     frm_mnMfgLotEffectiveDays_LEDD
+     frm_mnPurchEffectiveDays_PEFD
+     frm_szSADErrorMessage_DTAI
+     frm_szLotDateError_DTAI
+     frm_GENLNG_HoldCursorID
+     frm_MixItemLot_MIXL
+     frm_MixingItemsError_DTAI
+     frm_mnDisplayDecimal_MATH01
+     frm_cTruncOrRound_EV01
+
+=======================================================================
+     CONTROL:  HYPITEM &OK
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 //  If there is a discrepancy between UORG and total selected ,set error
+0002 // SAR 4355132 - If this is HTML Engine running, set a warning message for Over
+0003 // ship condition if over ship is allowed.
+0004 //
+0005 //
+0006 If FI CallingApplication is not equal to "P"
+0007    // SAR 4674918 begin
+0008    // SAR 6526564 - Added the condition CallingApplication = S
+0009    If VA frm_DualPickingProcessOption is equal to "1" And FI CallingApplication is equal to "S"
+0010       If FC TotalDualSelected is not equal to FI mnUnitsSecondaryQtyOr
+0011          If FC TotalDualSelected is greater than FC DualQuantityOrdered
+0012             If FI PreventOverShipment is equal to "1"
+0013                Set Control Error(FC TotalDualSelected, "2717")
+0014             Else
+0015                If SV Engine_Type is equal to CO HTML_ENGINE
+0016                   Set Control Error(FC TotalDualSelected, "4326")
+0017                End If
+0018             End If
+0019          Else
+0020             If VA frm_PreventPartialShipment is not equal to "1"
+0021                // SAR 6526564 - Removed the condition CallingApplication = S
+0022                Set Control Error(FC TotalDualSelected, "087Y")
+0023             Else
+0024                Set Control Error(FC TotalDualSelected, "2609")
+0025             End If
+0026          End If
+0027       End If
+0028    Else
+0029       If FC QAVALTotalSelected is not equal to FI Unitsquantityshipped
+0030          If FI CallingApplication is equal to "W"
+0031             Set Control Error(FC QAVALTotalSelected, "172F")
+0032          Else
+0033             If FC QAVALTotalSelected is greater than FC QuantityFromOrder
+0034                If FI PreventOverShipment is equal to "1"
+0035                   Set Control Error(FC QAVALTotalSelected, "2717")
+0036                Else
+0037                   If SV Engine_Type is equal to CO HTML_ENGINE
+0038                      Set Control Error(FC QAVALTotalSelected, "4326")
+0039                   End If
+0040                End If
+0041             Else
+0042                If VA frm_PreventPartialShipment is not equal to "1"
+                    And FI CallingApplication is equal to "S"
+0043                   Set Edit Control Error(FC QAVALTotalSelected, "087Y")
+0044                Else
+0045                   Set Edit Control Error(FC QAVALTotalSelected, "2609")
+0046                End If
+0047             End If
+0048          End If
+0049       End If
+0050    End If
+0051    // SAR 4674918 end
+0052 Else
+0053    //
+0054    //  Validate that over shipments are not allowed
+0055    // SAR 4355132 - If this is HTML Engine running, set a warning message for Over
+0056    // ship condition if over ship is allowed.
+0057    //
+0058    // SAR 4674918 begin
+0059    If VA frm_DualPickingProcessOption is equal to "1"
+0060       If FC TotalDualSelected is not equal to FI mnUnitsSecondaryQtyOr
+           And FC TotalDualSelected is greater than FC DualQuantityOrdered
+           And FI PreventOverShipment is equal to "1"
+0061          Set Control Error(FC TotalDualSelected, "2717")
+0062       Else
+0063          If FC TotalDualSelected is not equal to FI mnUnitsSecondaryQtyOr
+              And FC TotalDualSelected is greater than FC DualQuantityOrdered
+              And FI PreventOverShipment is not equal to "1"
+0064             If SV Engine_Type is equal to CO HTML_ENGINE
+0065                Set Control Error(FC TotalDualSelected, "4326")
+0066             End If
+0067          End If
+0068       End If
+0069    Else
+0070       If FC QAVALTotalSelected is not equal to FI Unitsquantityshipped
+           And FC QAVALTotalSelected is greater than FC QuantityFromOrder
+           And FI PreventOverShipment is equal to "1"
+0071          Set Control Error(FC QAVALTotalSelected, "2717")
+0072       Else
+0073          If FC QAVALTotalSelected is not equal to FI Unitsquantityshipped
+              And FC QAVALTotalSelected is greater than FC QuantityFromOrder
+              And FI PreventOverShipment is not equal to "1"
+0074             If SV Engine_Type is equal to CO HTML_ENGINE
+0075                Set Control Error(FC QAVALTotalSelected, "4326")
+0076             End If
+0077          End If
+0078       End If
+0079    End If
+0080    // SAR 4674918 end
+0081 End If
+0082 //
+0083 // Establish value to be returned to Ship Conform for over and
+0084 // under quantity processing. Over value is positive, and under value is
+0085 // negative.
+0086 //
+0087 If FI CallingApplication is equal to "S"
+0088    FI Quantityreworked = [FC QAVALTotalSelected]-[FC QuantityFromOrder]
+0089    // SAR 4674918 begin
+0090    // SAR 6526564 - Changed the If condition
+0091    If VA frm_DualUnitOfMeasureItem is not equal to <Blank> And VA frm_DualUnitOfMeasureItem is not equal to <Null>
+0092       FI mnSecondaryQtyOverUnder = [FC TotalDualSelected]-[FC DualQuantityOrdered]
+0093    End If
+0094    // SAR 4674918 end
+0095 End If
+
+=======================================================================
+     CONTROL:  HYPITEM F&ind
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 VA frm_EV01_FindButtonClicked = "1"
+0002 //
+0003 //          Set ResetShippedQty=1, so the FC fields with Quantities will be
+0004 //           updated correctly
+0005 //
+0006 VA frm_cResetShppedQty = "1"
+0007 FC SaveQuantityWF = FC QAVALTotalSelected
+0008 //
+0009 //
+0010 //           Clear out any errors when the find button has been clicked.
+0011 //
+0012 Clear Grid Cell Error(FC Grid,  <All Rows>,  <All Columns>)
+
+=======================================================================
+     CONTROL:  HYPITEM &Cancel
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 //
+0002 VA frm_cLastRecordRead = "0"
+0003 VA frm_GENLNG_IDCursor = "0"
+0004 //
+0005 While VA frm_cLastRecordRead is not equal to "1"
+0006    Cache, Get Memory
+           GB Item Number [HIDDEN] <- szItemNumber
+           GB Branch Plant <- szBranchPlant
+           GB Location (DB form) [HIDDEN] <- szLocation
+           GB Lot / Serial <- szLotNumber
+           UNDEFINED X szCatalogNumber
+           UNDEFINED X mnSupplierNumber
+           UNDEFINED X mnOrderNumber
+           UNDEFINED X szKeyCompany
+           UNDEFINED X szSuffixNumber
+           UNDEFINED X mnOrderLineNumber
+           VA frm_cLastRecordRead <> cLastRecordReadFlag
+           UNDEFINED X szDocumentType
+           GB Quantity <- mnQuantity
+           UNDEFINED X szUnitOfMeasure
+           UNDEFINED X cSuppressTerminateCache
+           UNDEFINED X mnUnitCost
+           GB Sequence Number [HIDDEN] <- nSequenceNumber
+           UNDEFINED X szMemoLot1
+           UNDEFINED X szMemoLot2
+           UNDEFINED X szMemoLot3
+           VA frm_GENLNG_IDCursor <> idCacheCursor
+           GB Supplier Lot Number <- szVendorLotNumber
+           GB Expiration Date <- jdDateLayerExpiration
+           GB Lot  Status Cd <- cLotStatusCode
+           UNDEFINED X mnIdentifierShortItem
+           UNDEFINED X mnQtyOnHandPrimaryUn
+           UNDEFINED X mnLotPotency
+           UNDEFINED X szLotGrade
+           UNDEFINED X szDescriptionLine1
+           UNDEFINED X cStockingType
+           UNDEFINED X mnQuantityAvailable
+           UNDEFINED X mnDualQuantity
+           UNDEFINED X szUnitOfMeasureSecondary
+           UNDEFINED X jdBasedOnDate
+           UNDEFINED X jdLotEffectivityDate
+           UNDEFINED X jdOnHandDate
+           UNDEFINED X jdSellByDate
+           UNDEFINED X jdBestBeforeDate
+           UNDEFINED X jdUserLotDate1
+           UNDEFINED X jdUserLotDate2
+           UNDEFINED X jdUserLotDate3
+           UNDEFINED X jdUserLotDate4
+           UNDEFINED X jdUserLotDate5
+           UNDEFINED X cBasePriceIndicator
+           UNDEFINED X cAdjustmentIndicator
+           UNDEFINED X mnAdjustmentRevisionLevel
+           UNDEFINED X cPriceOverrideCode
+0007 End While
+
+=======================================================================
+     CONTROL:  HYPITEM Update Grid
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 //
+0002 // Press the Find button when user clicks on the hyperbutton
+0003 //
+0004 Press Button(FC F&ind)
+
+=======================================================================
+     CONTROL:  HYPITEM Lot Date Override
+     EVENT:  Button Clicked
+-----------------------------------------------------------------------
+0001 If GC BranchPlant is not equal to <Blank>
+     And GC Lot /Serial is not equal to <Blank>
+     And BC Item Number - Short (F41021) is not equal to <Blank>
+0002    F4108 Verify Lot Not Duplicate
+           BC Item Number - Short (F41021) -> mnShortItemNumber
+           GC Branch Plant -> szBranchPlant
+           GC Lot / Serial -> szLotNumber
+           VA frm_cDuplicateLotExist_EV01 <- cErrorCode
+0003    If VA frm_cDuplicateLotExist_EV01 is equal to "1"
+0004       Set Grid Cell Error(FC Grid,  <Currently Selected Row>, GC Lot /Serial, "4077")
+0005    Else
+0006       If GC Based OnDate is equal to <Null Date>
+           Or GC Best BeforeDate is equal to <Null Date>
+           Or GC ExpirationDate is equal to <Null Date>
+           Or GC Lot EffectiveDate is equal to <Null Date>
+           Or GC Sell ByDate is equal to <Null Date>
+           Or GC User LotDate 1 is equal to <Null Date>
+           Or GC User LotDate 2 is equal to <Null Date>
+           Or GC User LotDate 3 is equal to <Null Date>
+           Or GC User LotDate 4 is equal to <Null Date>
+           Or GC User LotDate 5 is equal to <Null Date>
+           Or GC On HandDate is equal to <Null Date>
+0007          F4108 Get Lot Expiration Date
+                 BC Item Number - Short (F41021) -> mnShortItemNumber
+                 GC Branch Plant -> szBranchPlant
+                 GC Lot / Serial -> szLotNumber
+                 UNDEFINED X szLotGrade
+                 UNDEFINED X mnLotPotency
+                 UNDEFINED X szLotDescription
+                 UNDEFINED X cLotStatusCode
+                 GC Expiration Date <> jdExpirationDate
+                 UNDEFINED X szSupplierLotNumber
+                 UNDEFINED X mnShelfLifeDays
+                 UNDEFINED X cFromSideOfTransfer
+                 FI Datetransactionjulian -> jdTransactionDate
+                 UNDEFINED X cDefaultFromLotMaster
+                 UNDEFINED X cSuppressErrorMsg
+                 UNDEFINED X cLotProcessType
+                 UNDEFINED X cSerialNumberRequired
+                 UNDEFINED X szMemoLot1
+                 UNDEFINED X szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 "1" -> cExpirationDateEditMode
+                 UNDEFINED X cMemoLotEditMode
+                 UNDEFINED X szPrimaryLocationLot
+                 UNDEFINED X cInventoryLotCreation
+                 UNDEFINED X cErrorCode
+                 UNDEFINED X idF4102ItemBranchPtr
+                 FI mnTransactionType -> mnTransactionType
+                 GC Based On Date <> jdBasedOnDate
+                 GC On Hand Date [HIDDEN] <> jdOnHandDate
+                 GC Lot Effective Date <> jdLotEffectivityDate
+                 GC Sell By Date [HIDDEN] <> jdSellByDate
+                 GC Best Before Date [HIDDEN] <> jdBestBeforeDate
+                 GC User Lot Date 1 [HIDDEN] <> jdUserLotDate1
+                 GC User Lot Date 2 [HIDDEN] <> jdUserLotDate2
+                 GC User Lot Date 3 [HIDDEN] <> jdUserLotDate3
+                 GC User Lot Date 4 [HIDDEN] <> jdUserLotDate4
+                 GC User Lot Date 5 [HIDDEN] <> jdUserLotDate5
+                 UNDEFINED X cStockingType
+0008       End If
+0009       Call( App:P4108 , Form: W4108G )
+              GC Lot / Serial -> szLot
+              BC Item Number - Short (F41021) -> mnIdentifierShortItem
+              GC Branch Plant -> szCostCenter
+              GC Based On Date <> jdBasedOnDate
+              GC On Hand Date [HIDDEN] <> jdOnHandDate
+              GC Lot Effective Date <> jdLotEffectivityDate
+              GC Sell By Date [HIDDEN] <> jdSellByDate
+              GC Best Before Date [HIDDEN] <> jdBestBeforeDate
+              GC User Lot Date 1 [HIDDEN] <> jdUserLotDate1
+              GC User Lot Date 2 [HIDDEN] <> jdUserLotDate2
+              GC User Lot Date 3 [HIDDEN] <> jdUserLotDate3
+              GC User Lot Date 4 [HIDDEN] <> jdUserLotDate4
+              GC User Lot Date 5 [HIDDEN] <> jdUserLotDate5
+              GC Expiration Date <> jdDate - Lot Expiration
+              UNDEFINED X cOKPressed
+0010    End If
+0011 Else
+0012    Stop Processing
+0013 End If
+
+=======================================================================
+     CONTROL:  GRID Grid
+     EVENT:  Row Exit & Changed - Inline
+-----------------------------------------------------------------------
+0001 //
+0002 // **  SK6005857  SAR#2514056  06/29/99
+0003 // This will help to default memo lot values from the header into the detail,  i
+0004 // the memo lot fields in the detail are left blank.
+0005 //     Do the following only if the calling application is Purchasing
+0006 //
+0007 If FI CallingApplication is equal to "P"
+0008    If GC Memo Lot 1 is equal to <Blank>
+0009       GC Memo Lot 1 = [FC Memo Lot 1(Purch)]
+0010    End If
+0011    If GC Memo Lot 2 is equal to <Blank>
+0012       GC Memo Lot 2 = [FC Memo Lot 2(Purch)]
+0013    End If
+0014    If GC Supplier LotNumber is equal to <Blank>
+0015       GC Supplier LotNumber = [FC Supplier Lot(Purch)]
+0016    End If
+0017 End If
+0018 //
+0019 // SAR 4903875 - move the following logic from the column exit event to the Row
+0020 // Exit event.
+0021 //
+0022 //
+0023 // SAR 4674918 begin
+0024 If VA frm_DualPickingProcessOption is equal to "1"
+0025    If GC DualQuantity is not equal to GC mnDualCtrlQty
+0026       VA frm_cPassedEdits_Purch = "0"
+0027    End If
+0028 Else
+0029    If GC Quantity is not equal to GC mnCtrlQTY
+0030       VA frm_cPassedEdits_Purch = "0"
+0031    End If
+0032 End If
+0033 // SAR 4674918 end
+0034 //
+0035 // SAR 4071711 do not allow Multi Location if calling application is Sales and
+0036 // quantity is opposite sign value of quantity from calling application
+0037 //
+0038 If FI CallingApplication is not equal to "P"
+0039    I Unitsquantityshipped is greater than <Zero>
+        And GC Quantity is less than <Zero>
+0040       Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Quantity, "155V")
+0041    Else
+0042       I Unitsquantityshipped is less than <Zero>
+           And GC Quantity is greater than <Zero>
+0043          Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Quantity, "155V")
+0044       End If
+0045    End If
+0046    // SAR 4674918 begin
+0047    If FI mnUnitsSecondaryQtyOr is greater than <Zero>
+        And GC DualQuantity is less than <Zero>
+0048       Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC DualQuantity, "155V")
+0049    Else
+0050       // SAR 6526564 - changed the condition
+0051       If FI mnUnitsSecondaryQtyOr is less than <Zero> And GC SecondaryQuantity is greater than <Zero>
+0052          Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC DualQuantity, "155V")
+0053       End If
+0054    End If
+0055    // SAR 4674918 end
+0056 End If
+0057 //
+0058 // end SAR 4071711
+0059 //
+0060 VA frm_mnDelta = [GC QuantityShipped]-[GC mnCtrlQTY]
+0061 FC QAVALTotalSelected = [FC QAVALTotalSelected]+[VA frm_mnDelta]
+0062 GC mnCtrlQTY = GC QuantityShipped
+0063 //
+0064 // SAR 4674918 begin
+0065 // SAR 6526564 - Changed the If condition
+0066 If VA frm_DualUnitOfMeasureItem is not equal to <Blank> And VA frm_DualUnitOfMeasureItem is not equal to <Null>
+0067    VA frm_mnDualDelta = [GC DualQuantity]-[GC mnDualCtrlQty]
+0068    FC TotalDualSelected = [FC TotalDualSelected]+[VA frm_mnDualDelta]
+0069    GC mnDualCtrlQty = GC DualQuantity
+0070 End If
+0071 // SAR 4674918 end
+0072 //
+0073 If FC QAVALTotalSelected is not equal to FC QuantityFromOrder
+0074    If FC QAVALTotalSelected is less than FC QuantityFromOrder
+0075       FC mnQtyUnder = [FC QuantityFromOrder]-[FC QAVALTotalSelected]
+0076       FC mnQtyOver = 0
+0077       Hide Control(FC mnQtyOver)
+0078       Show Control(FC mnQtyUnder)
+0079    Else
+0080       FC mnQtyOver = [FC QAVALTotalSelected]-[FC QuantityFromOrder]
+0081       FC mnQtyUnder = 0
+0082       Hide Control(FC mnQtyUnder)
+0083       Show Control(FC mnQtyOver)
+0084    End If
+0085 Else
+0086    FC mnQtyUnder = 0
+0087    Show Control(FC mnQtyUnder)
+0088    Hide Control(FC mnQtyOver)
+0089 End If
+0090 //
+0091 // SAR 4903805 End
+0092 //
+0093 // SAR 4674918 begin
+0094 // SAR 6526564 - Changed the condition
+0095 If VA frm_DualUnitOfMeasureItem is not equal to <Blank> And VA frm_DualUnitOfMeasureItem is not equal to <Null>
+0096    If FC TotalDualSelected is not equal to FC DualQuantityOrdered
+0097       If FC TotalDualSelected is less than FC DualQuantityOrdered
+0098          FC DualQtyUnder = [FC DualQuantityOrdered]-[FC TotalDualSelected]
+0099          FC DualQtyOver = "0"
+0100          Hide Control(FC DualQtyOver)
+0101          Show Control(FC DualQtyUnder)
+0102       Else
+0103          FC DualQtyOver = [FC TotalDualSelected]-[FC DualQuantityOrdered]
+0104          FC DualQtyUnder = "0"
+0105          Hide Control(FC DualQtyUnder)
+0106          Show Control(FC DualQtyOver)
+0107       End If
+0108    Else
+0109       FC DualQtyUnder = "0"
+0110       Hide Control(FC DualQtyOver)
+0111       Show Control(FC DualQtyUnder)
+0112    End If
+0113 End If
+0114 // SAR 4674918 end
+
+-----------------------------------------------------------------------
+     EVENT:  Row Exit & Changed - Asynch
+-----------------------------------------------------------------------
+     evt_cSuppressErrorMsg
+     evt_cExpDateWasChanged
+     evt_CallingApplication
+     evt_QuantityErrorSerialNumber
+     evt_CacheBranchPlant
+     evt_CacheLotSerial
+     evt_CacheMultiLocationCursor
+     evt_LastRecordReadFlag
+     evt_CacheItemNumber
+     evt_CacheQuantity
+     evt_CacheSequenceNumber
+     evt_DualToleranceError_DTAI
+     evt_idF4108RowPtr_GENLNG
+     evt_ExpiryDate
+     evt_CacheExpiryDate
+0001 //
+0002 // DATE           PROGRAMMER         SAR#            DESCRIPTION
+0003 // 08/12/03         JV7445740       6672406        Potency Item Error in PO
+0004 // 08/20/04    IC8866327    7186741       Shows an error message when the user
+0005 // enters different expiry date for the same lot during PO receipts when lot
+0006 // no is manually assigned
+0007 //
+0008 // Receipts
+0009 //
+0010 // assign grid Sequence Number if no number exists
+0011 //
+0012 If GC SequenceNumber is equal to <Zero>
+     Or GC SequenceNumber is equal to <Null>
+0013    GC SequenceNumber = VA frm_INT01_SequenceNumber
+0014    VA frm_INT01_SequenceNumber = [VA frm_INT01_SequenceNumber]+1
+0015 !    If FI CallingApplication is equal to "P"
+     ! Or VA frm_SRCE_LotProcessType is equal to "4"
+0016 !       VA frm_INT01_SequenceNumber = [VA frm_INT01_SequenceNumber]+1
+0017 !    End If
+0018 End If
+0019 //
+0020 // Ship Ascending Dat for Sales - If the lot doesn't satisfied the rules, set a
+0021 // warning.
+0022 //
+0023 If FI CallingApplication is equal to "S" And FI cShipAscendingDateFlag is equal to "1" And FI cPOErrorOrWarning is not equal to "1" And GC Lot /Serial is greater than <Blank>
+0024    If FI cCheckBestBeforeDate is equal to "1" Or FI cCheckExpirationDate is equal to "1" Or FI cCheckSellByDate is equal to "1"
+0025       Edit Ship Ascending Dates
+              BC Item Number - Short (F41021) -> mnShortItemNumber_ITM
+              GC Lot / Serial -> szLotNumber_LOTN
+              GC Branch Plant -> szBusinessUnit_MCU
+              FI mnAddressNumberShipTo -> mnShipToAddressNumber_SHAN
+              UNDEFINED X idLotMasterPTR_GENLNG
+              FI cCheckExpirationDate -> cCheckExpirationDate_EDCK
+              FI cCheckSellByDate -> cCheckSellByDate_SBCK
+              FI cCheckBestBeforeDate -> cCheckBestBeforeDate_BBCK
+              UNDEFINED X cOverrideCommitDateMethod_CMDM
+              VA frm_szSADErrorMessage_DTAI <- szErrorMessageID_DTAI
+              FI cPOErrorOrWarning -> cOnlyIssueWarning_EV01
+0026       If VA frm_szSADErrorMessage_DTAI is not equal to <Blank> And VA frm_szSADErrorMessage_DTAI is not equal to <Null>
+0027          Set Grid Cell Error(FC Grid,  <Currently Selected Row>, GC Lot /Serial, VA frm_szSADErrorMessage_DTAI)
+0028          VA frm_szSADErrorMessage_DTAI = " "
+0029       End If
+0030    End If
+0031 End If
+0032 // SAD End
+0033 //
+0034 // SAR 2057836
+0035 //
+0036 // The Processing Option to check availability is passed from Ship Confirm
+0037 // as well as the Check Availability Flag is retireved for the Item. If a user
+0038 // tries to select more than what is available from a particular location and
+0039 // both check availability flags are on, set warning.
+0040 //
+0041 If FI CallingApplication is not equal to "P"
+     And VA frm_SRCE_LotProcessType is not equal to "4"
+0042    //
+0043    // SAR 4674918 begin
+0044    If VA frm_DualPickingProcessOption is equal to "1"
+0045       If FI AvailabilityCheckFlag is equal to "1"
+           And VA frm_cCheckAvailableFlag is equal to "Y"
+0046          If GC DualQuantity is greater than GC SecondaryAvailable
+              And GC DualQuantity is greater than <Zero>
+0047             Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC DualQuantity, "2716")
+0048          End If
+0049       End If
+0050       // SAR 6526564 - Changed the condition from GC_Qty to GC_SecondaryQty
+0051       If VA frm_PreventNegOnHand is equal to "1" And GC SecondaryQuantity is greater than <Zero>
+0052          If GC SecondaryQuantityOn Hand is less than or equal to <Zero>
+0053             Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC DualQuantity, "3011")
+0054          Else
+0055             If GC DualQuantity is greater than GC SecondaryQuantityOn Hand
+0056                Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC DualQuantity, "3015")
+0057             End If
+0058          End If
+0059       End If
+0060    Else
+0061       If FI AvailabilityCheckFlag is equal to "1"
+           And VA frm_cCheckAvailableFlag is equal to "Y"
+0062          If GC Quantity is greater than GC Available
+              And GC Quantity is greater than <Zero>
+0063             Set Grid Cell Error(FC Grid, <Current Row>, GC Quantity, "2716")
+0064          End If
+0065       End If
+0066       //
+0067       // The processing Option to prevent negative on hand is passed from Ship Confirm
+0068       // If try to select more than what is on hand from a particular location, and
+0069       // the prevent negative on hand flag = 1, set Error.
+0070       //
+0071       If VA frm_PreventNegOnHand is equal to "1"
+           And GC Quantity is greater than <Zero>
+0072          If GC QuantityOn Hand is less than or equal to <Zero>
+0073             Set Grid Cell Error(FC Grid, <Current Row>, GC Quantity, "3011")
+0074          Else
+0075             If GC Quantity is greater than GC QuantityOn Hand
+0076                Set Grid Cell Error(FC Grid, <Current Row>, GC Quantity, "3015")
+0077             End If
+0078          End If
+0079       End If
+0080    End If
+0081    // SAR 4674918 end
+0082 End If
+0083 //
+0084 // ** end of SAR 2057836 changes
+0085 //
+0086 If GC BranchPlant is equal to  <Blank>
+0087    GC BranchPlant = FC Business Unit
+0088 End If
+0089 //
+0090 GC UM = FC Order Qty UOM
+0091 // SAR 4674918 begin
+0092 // SAR 6526564 - Changed the if condition
+0093 If VA frm_DualUnitOfMeasureItem is not equal to <Blank> And VA frm_DualUnitOfMeasureItem is not equal to <Null>
+0094    GC SecondaryUM = FC DualUOM
+0095 End If
+0096 // SAR 4674918 end
+0097 //
+0098 // Begin SAR 6672406
+0099 GC ShortItem No = FI IdentifierShortItem
+0100 // End SAR 6672406
+0101 //
+0102 //           Format and validate Location
+0103 //
+0104 F4100 Format Location
+        GC Branch Plant -> szCostCenter
+        GC Location <> szDisplayFormatLocation
+        GC Location (DB form) [HIDDEN] <- szFileFormatLocation
+        "1" -> cValidate
+        UNDEFINED X szAisle
+        UNDEFINED X szBin
+        UNDEFINED X szLocation3
+        UNDEFINED X szLocation4
+        UNDEFINED X szLocation5
+        UNDEFINED X szLocation6
+        UNDEFINED X szLocation7
+        UNDEFINED X szLocation8
+        UNDEFINED X szLocation9
+        UNDEFINED X szLocation10
+        "2" -> cMode
+        UNDEFINED X idBranchConstantRecord
+0105 //
+0106 // Load Defaults when Lot Process Type equals 4,5,6, or 7, and Serial Number
+0107 // Required is equal to 3,4, or 5 when called by Purchasing (or any other
+0108 // application and the when Lot Processing Type equals '4') and the
+0109 // related grid column is blank.
+0110 //
+0111 If VA frm_SRNR_SerialNumberRequired is equal to "3,4,5"
+0112    //
+0113    If GC Supplier LotNumber is less than or equal to <Blank>
+        And FC Supplier Lot(Purch) is greater than <Blank>
+0114       GC Supplier LotNumber = FC Supplier Lot(Purch)
+0115    End If
+0116    //
+0117    If GC Memo Lot 1 is less than or equal to <Blank>
+        And FC Memo Lot 1(Purch) is greater than <Blank>
+0118       GC Memo Lot 1 = FC Memo Lot 1(Purch)
+0119    End If
+0120    //
+0121    If GC Memo Lot 2 is less than or equal to <Blank>
+        And FC Memo Lot 2(Purch) is greater than <Blank>
+0122       GC Memo Lot 2 = FC Memo Lot 2(Purch)
+0123    End If
+0124 End If
+0125 //
+0126 //            Validate Item Location
+0127 //
+0128 If GC Quantity is not equal to  <Zero>
+0129    //
+0130    If VA frm_SRCE_LotProcessType is not equal to "4,5,6,7"
+        And VA evt_CallingApplication is equal to "P"
+        Or VA frm_SRCE_LotProcessType is not equal to "4"
+        And VA evt_CallingApplication is not equal to "P"
+0131       VA evt_cSuppressErrorMsg = "1"
+0132       F41021 Get Item Location Row
+              GC Branch Plant -> szBranchPlant
+              FI IdentifierShortItem -> mnShortItemNumber
+              GC Location (DB form) [HIDDEN] -> szLocation
+              GC Lot / Serial -> szLotNumber
+              "1" -> mnIndex
+              "4" -> mnKeys
+              "1" -> cCallType
+              UNDEFINED X cReturnRecord
+              UNDEFINED X idItemLocationRecord
+              VA evt_cSuppressErrorMsg -> cSuppressErrorMessages
+              VA frm_szErrorMessage <- szErrorMessageID
+0133       If VA frm_szErrorMessage is equal to "0678"
+0134          If FI CallingApplication is equal to "P"
+              Or FI CallingApplication is equal to "W"
+0135             Set Grid Cell Error(FC Grid, <Current Row>, GC Location, "0678")
+0136             // This is a new lot. Copy that dates passed in from the calling applications.
+0137             If GC Lot EffectiveDate is equal to <Null Date>
+0138                GC Lot EffectiveDate = FI jdLotEffectivityDate
+0139             End If
+0140             //
+0141             If GC ExpirationDate is equal to <Null Date>
+0142                GC ExpirationDate = FI jdDate - Lot Expiration
+0143             End If
+0144             //
+0145             If GC Based OnDate is equal to <Null Date>
+0146                GC Based OnDate = FI jdBasedOnDate
+0147             End If
+0148             //
+0149          Else
+0150             If FI CallingApplication is equal to "S"
+                 And FI cAllowNewLotForCO is equal to "1"
+                 And FI cIsThisCreditOrderY_N is equal to "1"
+0151                Set Grid Cell Error(FC Grid, <Current Row>, GC Location, "0678")
+0152                // This is a new lot. Copy that dates passed in from the calling applications.
+0153                F4108 Get Lot Expiration Date
+                       BC Item Number - Short (F41021) -> mnShortItemNumber
+                       GC Branch Plant -> szBranchPlant
+                       GC Lot / Serial -> szLotNumber
+                       UNDEFINED X szLotGrade
+                       UNDEFINED X mnLotPotency
+                       UNDEFINED X szLotDescription
+                       UNDEFINED X cLotStatusCode
+                       GC Expiration Date <> jdExpirationDate
+                       UNDEFINED X szSupplierLotNumber
+                       UNDEFINED X mnShelfLifeDays
+                       UNDEFINED X cFromSideOfTransfer
+                       FI Datetransactionjulian -> jdTransactionDate
+                       UNDEFINED X cDefaultFromLotMaster
+                       UNDEFINED X cSuppressErrorMsg
+                       UNDEFINED X cLotProcessType
+                       UNDEFINED X cSerialNumberRequired
+                       UNDEFINED X szMemoLot1
+                       UNDEFINED X szMemoLot2
+                       UNDEFINED X szMemoLot3
+                       "1" -> cExpirationDateEditMode
+                       UNDEFINED X cMemoLotEditMode
+                       UNDEFINED X szPrimaryLocationLot
+                       UNDEFINED X cInventoryLotCreation
+                       UNDEFINED X cErrorCode
+                       UNDEFINED X idF4102ItemBranchPtr
+                       FI mnTransactionType -> mnTransactionType
+                       GC Based On Date <> jdBasedOnDate
+                       GC On Hand Date [HIDDEN] <> jdOnHandDate
+                       GC Lot Effective Date <> jdLotEffectivityDate
+                       GC Sell By Date [HIDDEN] <> jdSellByDate
+                       GC Best Before Date [HIDDEN] <> jdBestBeforeDate
+                       GC User Lot Date 1 [HIDDEN] <> jdUserLotDate1
+                       GC User Lot Date 2 [HIDDEN] <> jdUserLotDate2
+                       GC User Lot Date 3 [HIDDEN] <> jdUserLotDate3
+                       GC User Lot Date 4 [HIDDEN] <> jdUserLotDate4
+                       GC User Lot Date 5 [HIDDEN] <> jdUserLotDate5
+                       UNDEFINED X cStockingType
+0154             Else
+0155                Set Grid Cell Error(FC Grid, <Current Row>, GC Location, "3259")
+0156             End If
+0157          End If
+0158       End If
+0159       // Begin SAR 5674389
+0160       // Only verfiy mixing of items in a location and or lot
+0161       // if not calling from Sales Order or Quantity is negative:
+0162       If FI CallingApplication is not equal to "S" Or GC Quantity is less than <Zero>
+0163          // Verify if mixing of items not allowed:
+0164          // Retrieve MixItemLot flag from F4100:
+0165          F4100.Fetch Single
+                 GC Branch Plant =  TK Business Unit
+                 GC Location (DB form) [HIDDEN] =  TK Location
+                 VA frm_MixItemLot_MIXL <- TK Mix Item/Lot
+0166          Verify Mixing Of Lots
+                 FI IdentifierShortItem -> mnShortItemNumber
+                 GC Branch Plant -> szBranchPlant
+                 GC Location (DB form) [HIDDEN] -> szLocation
+                 GC Lot / Serial -> szLotNumber
+                 GC Lot  Status Cd -> cLotStatusCode
+                 VA frm_MixingItemsError_DTAI <- szErrorMessageID
+                 UNDEFINED X cErrorCode
+                 UNDEFINED X cStagingLocationYN
+                 VA frm_MixItemLot_MIXL -> cMixItemLot
+0167          If VA frm_MixingItemsError_DTAI is not equal to <Null> And VA frm_MixingItemsError_DTAI is not equal to <Blank> And VA frm_MixingItemsError_DTAI is not equal to <Zero>
+0168             Set Control Error(FC Grid, VA frm_MixingItemsError_DTAI)
+0169          End If
+0170       End If
+0171       // End 5674389
+0172    End If
+0173 End If
+0174 //
+0175 // SAR 4674918 beign: dual tolerance check
+0176 If GC Quantity is not equal to <Zero>
+     And GC SecondaryQuantity is not equal to <Zero>
+0177    Dual Unit of Measure
+           "1" -> cSuppressErrorMessage
+           VA evt_DualToleranceError_DTAI <- szErrorMessageID
+           FI IdentifierShortItem -> mnIdentifierShortItem
+           GC Branch Plant -> szBranchPlant
+           GC Quantity -> mnUnitsTransactionQty
+           GC UM -> szUnitOfMeasureAsInput
+           GC Secondary Quantity -> mnUnitsSecondaryQty
+           GC Secondary UM -> szUnitOfMeasureSecondAsInput
+           UNDEFINED X cDualUnitOfMeasureItem
+           UNDEFINED X mnDualTolerance
+           UNDEFINED X cDualPickingProcessOption
+           UNDEFINED X szUnitOfMeasurePrimary
+           UNDEFINED X szUnitOfMeasureSecondary
+           "1" -> cInventoryTransactionProcess
+           "3" -> cTransactionException
+           UNDEFINED X mnDualJobNumber
+           UNDEFINED X mnOrderNumber
+           UNDEFINED X szOrderType
+           UNDEFINED X szCompanyKeyOrderNo
+           UNDEFINED X szOrderSuffix
+           UNDEFINED X mnLineNumber
+           UNDEFINED X mnNoOfLinesOnOrder
+           UNDEFINED X szComputerID
+           UNDEFINED X cUpdateSecondaryQuantityOnHand
+           UNDEFINED X mnExtendedAmount
+           UNDEFINED X mnPrimaryQuantity
+           UNDEFINED X mnSecondaryQuantity
+           UNDEFINED X cCycleCountVariance
+0178 End If
+0179 If VA evt_DualToleranceError_DTAI is not equal to <Blank>
+     And VA evt_DualToleranceError_DTAI is not equal to <Null>
+0180    Set Grid Cell Error(FC Grid,  <Currently Selected Row>, GC Quantity, VA evt_DualToleranceError_DTAI)
+0181 End If
+0182 // sar 4674918 end
+0183 //
+0184 // Lot and Serial Number validation - only validate when Quantity > 0
+0185 //
+0186 If GC Quantity is greater than <Zero>
+0187    //
+0188    // Validate Serial Number processing when Lot Process Type equals 4,5,6, or 7
+0189    // and Shipped Quantity is not equal to zero.
+0190    //
+0191    If VA frm_SRCE_LotProcessType is equal to "4,5,6,7"
+0192       //
+0193       // if called by a Sales application change flag to a 'C' for Ship Confirm
+0194       If FI CallingApplication is equal to "S"
+0195          VA evt_CallingApplication = "C"
+0196       Else
+0197          VA evt_CallingApplication = FI CallingApplication
+0198       End If
+0199       Serial Number Processing Edits
+              FI IdentifierShortItem -> mnIdentifierShortItem
+              GC Branch Plant -> szCostCenter
+              GC Location (DB form) [HIDDEN] -> szLocation
+              GC Lot / Serial <> szLot
+              GC Memo Lot 1 -> szMemoLotField1
+              GC Memo Lot 2 -> szMemoLotField2
+              GC Supplier Lot Number -> szVendorLotNumber
+              GC Quantity -> mnQuantityTransaction
+              FC Order Qty UOM -> szTransactionUnitOfMeasure
+              VA frm_szPrimaryUoM -> szPriamaryUnitOfMeasure
+              VA frm_SRCE_LotProcessType -> cLotProcessType
+              VA frm_SRNR_SerialNumberRequired -> cSerialNumberRequired
+              VA evt_CallingApplication -> cCallingApplication
+              UNDEFINED X idF41021Pointer
+              VA frm_ERRC_SerialNumberError <- cErrorCode
+              UNDEFINED X szErrorMessage
+              UNDEFINED X szLotFrom
+0200       //
+0201       // *** SAR 3262065 - check for serial number duplicates in the grid, and validat
+0202       // based upon the Allow Duplicate Lots value from theDistribution Constants
+0203       //
+0204       If VA frm_AllowDuplicateLots is less than or equal to <Blank>
+0205          F4009 Get Distribution Constants
+                 UNDEFINED X cUoMConversionByBranch
+                 UNDEFINED X cSupplementalDataByBranch
+                 VA frm_AllowDuplicateLots <- cAllowDuplicateLots
+                 UNDEFINED X cUpdateAverageCost
+                 UNDEFINED X cAdvancedSalesPricing
+                 UNDEFINED X cSalesPriceRetrievalUoM
+                 UNDEFINED X cSalesPriceBasedOnDate
+                 UNDEFINED X cSymbolToIdentifyVariable
+                 UNDEFINED X cSymbolToIdentifyUoM
+                 UNDEFINED X cSymbolToIdentifyCurrency
+                 UNDEFINED X cSymbolToIdentifyColumn
+                 UNDEFINED X cPurchasePriceRetrivalUOM
+                 UNDEFINED X cSystemConstants07
+                 UNDEFINED X cSystemConstants08
+                 UNDEFINED X cSystemConstants09
+                 UNDEFINED X cSystemConstantsCode10
+                 UNDEFINED X cControlCodeECS
+                 UNDEFINED X cShipAscendingDateRule
+                 UNDEFINED X cAdvancedProcurementPricing
+                 UNDEFINED X cScientificRounding
+                 UNDEFINED X cRequirePriceApproval
+                 UNDEFINED X cProcurementCostBasedOnDate
+                 UNDEFINED X cSystemConstantsCode15
+                 UNDEFINED X cUseAuditLogForSalesOrderC
+                 UNDEFINED X cReasonCodeRequired
+                 UNDEFINED X cApprovalProcessRequired
+                 UNDEFINED X cUseCustomerSet
+                 UNDEFINED X cPrepaymentProcessing
+                 UNDEFINED X cCriticalHoldDecoupling
+                 UNDEFINED X cEnhancedLotProcessing
+                 UNDEFINED X cAdjustmentRetrievalMethod
+                 UNDEFINED X szOrganizationTypeStructur
+                 UNDEFINED X cPricingAddressFlag
+                 UNDEFINED X cPreferenceRetrievalUOM
+                 UNDEFINED X szPreferenceSchedule
+                 UNDEFINED X cPromotionsMultipleResolut
+                 UNDEFINED X cPromotionsSystemFlag
+                 UNDEFINED X cFlagForFuture23
+                 UNDEFINED X cFlagForFuture24
+                 UNDEFINED X cFlagForFuture25
+                 UNDEFINED X cFlagForFuture26
+                 UNDEFINED X cFlagForFuture27
+0206       End If
+0207       //
+0208       VA evt_LastRecordReadFlag = " "
+0209       While VA evt_LastRecordReadFlag is not equal to "1"
+0210          Cache, Get Memory
+                 VA evt_CacheItemNumber <- szItemNumber
+                 VA evt_CacheBranchPlant <- szBranchPlant
+                 UNDEFINED X szLocation
+                 VA evt_CacheLotSerial <- szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 UNDEFINED X mnOrderLineNumber
+                 VA evt_LastRecordReadFlag <- cLastRecordReadFlag
+                 UNDEFINED X szDocumentType
+                 VA evt_CacheQuantity <- mnQuantity
+                 UNDEFINED X szUnitOfMeasure
+                 "1" -> cSuppressTerminateCache
+                 UNDEFINED X mnUnitCost
+                 VA evt_CacheSequenceNumber <- nSequenceNumber
+                 UNDEFINED X szMemoLot1
+                 UNDEFINED X szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 VA evt_CacheMultiLocationCursor <> idCacheCursor
+                 UNDEFINED X szVendorLotNumber
+                 UNDEFINED X jdDateLayerExpiration
+                 UNDEFINED X cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 UNDEFINED X mnLotPotency
+                 UNDEFINED X szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 UNDEFINED X mnDualQuantity
+                 UNDEFINED X szUnitOfMeasureSecondary
+                 UNDEFINED X jdBasedOnDate
+                 UNDEFINED X jdLotEffectivityDate
+                 UNDEFINED X jdOnHandDate
+                 UNDEFINED X jdSellByDate
+                 UNDEFINED X jdBestBeforeDate
+                 UNDEFINED X jdUserLotDate1
+                 UNDEFINED X jdUserLotDate2
+                 UNDEFINED X jdUserLotDate3
+                 UNDEFINED X jdUserLotDate4
+                 UNDEFINED X jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0211          If VA evt_LastRecordReadFlag is not equal to "1"
+              And GC Lot /Serial is equal to VA evt_CacheLotSerial
+              And FC Item Number is equal to VA evt_CacheItemNumber
+              And GC SequenceNumber is not equal to VA evt_CacheSequenceNumber
+0212             If VA frm_AllowDuplicateLots is equal to "1,N"
+0213                Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Lot /Serial, "4714")
+0214                VA frm_ERRC_SerialNumberError = "1"
+0215             Else
+0216                If VA frm_AllowDuplicateLots is equal to "2"
+0217                   If GC Quantity is greater than <Zero>
+                       And VA evt_CacheQuantity is greater than <Zero>
+0218                      Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Lot /Serial, "4714")
+0219                      VA frm_ERRC_SerialNumberError = "1"
+0220                   End If
+0221                Else
+0222                   If VA frm_AllowDuplicateLots is equal to "3"
+0223                      If GC BranchPlant is equal to VA evt_CacheBranchPlant
+0224                         Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Lot /Serial, "4714")
+0225                         VA frm_ERRC_SerialNumberError = "1"
+0226                      Else
+0227                         If GC Quantity is greater than <Zero>
+                             And VA evt_CacheQuantity is greater than <Zero>
+0228                            Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Lot /Serial, "4714")
+0229                            VA frm_ERRC_SerialNumberError = "1"
+0230                         End If
+0231                      End If
+0232                   End If
+0233                End If
+0234             End If
+0235          End If
+0236       End While
+0237       //
+0238       // *** end SAR 3262065
+0239       //
+0240       If VA frm_ERRC_SerialNumberError is equal to "1"
+0241          Stop Processing
+0242       End If
+0243       // SAR #2439658
+0244       If VA evt_CallingApplication is equal to "P"
+0245          If VA frm_SRCE_LotProcessType is equal to "4"
+              And GC Lot /Serial is not equal to <Blank>
+              Or VA frm_SRCE_LotProcessType is equal to "5,6,7"
+0246             F41021 Serial Number Quantity Check
+                    GC Short Item No [HIDDEN] -> mnIdentifierShortItem
+                    GC Lot / Serial -> szLot
+                    GC Quantity -> mnQuantityTransaction
+                    VA evt_QuantityErrorSerialNumber <- cQuantityError
+                    UNDEFINED X cSuppressQuantityError
+                    UNDEFINED X cF41021ExistenceError
+0247             If VA evt_QuantityErrorSerialNumber is not equal to <Zero>
+0248                If VA evt_QuantityErrorSerialNumber is not equal to <Null>
+0249                   If VA evt_QuantityErrorSerialNumber is not equal to <Blank>
+0250                      Set Grid Cell Error(FC Grid,  <Current Row>, GC Quantity, "4723")
+0251                   End If
+0252                End If
+0253             End If
+0254          End If
+0255       Else
+0256          If VA frm_SRCE_LotProcessType is equal to "5,6,7"
+0257             If GC Quantity is greater than GC Available
+                 Or GC Quantity is greater than "1"
+0258                Set Grid Cell Error(FC Grid,  <Current Row>, GC Quantity, "4723")
+0259             End If
+0260          End If
+0261       End If
+0262       // SAR #2439658 End of Change
+0263       //
+0264    Else
+0265       //
+0266       // validate Lots when Lot processing is required (Lot Process Type = 1,2, or 3 o
+0267       // Lot is not blank) and the Calling Application is Purchasing or
+0268       // Manufacturing
+0269       //
+0270       // Sar 6077851 - Modified condition to evaluate lots when calling application
+0271       // is 'W' from Work order completions.
+0272       //
+0273       If FI CallingApplication is equal to "P" Or FI CallingApplication is equal to "W"
+0274          //
+0275          If GC Lot /Serial is greater than <Blank>
+0276             F4108 Verify Lot Not Duplicate
+                    GC Short Item No [HIDDEN] -> mnShortItemNumber
+                    GC Branch Plant -> szBranchPlant
+                    GC Lot / Serial -> szLotNumber
+                    VA frm_ERRC_SerialNumberError <- cErrorCode
+0277             If VA frm_ERRC_SerialNumberError is equal to "1"
+0278                Set Grid Cell Error(FC Grid, <Current Row>, GC Lot /Serial, "4077")
+0279                Stop Processing
+0280             End If
+0281          Else
+0282             IfVA frm_SRCE_LotProcessTypeis equal to"1,2"AndGC PrimaryLocationis not equal to"P"
+0283                // SAR 2853074 Pass in Receipt Date instead of Lot Exp Date.
+0284                F0002 Get Next Lot Number
+                       GC Short Item No [HIDDEN] -> mnShortItemNumber
+                       GC Branch Plant -> szBranchPlant
+                       GC Lot / Serial <> szLot
+                       GC Location (DB form) [HIDDEN] -> szLocation
+                       VA frm_SRCE_LotProcessType -> cProcessType
+                       FI Datetransactionjulian <> jdDate
+0285             Else
+0286                If VA frm_SRCE_LotProcessType is equal to "3"
+0287                   Set Grid Cell Error(FC Grid,  <Current Row>, GC Lot /Serial, "4190")
+0288                   Stop Processing
+0289                End If
+0290             End If
+0291          End If
+0292          //
+0293          // SAR 4478280 Begin
+0294          // SAR 4715046 - Add check for Lot Potency
+0295          If GC LotGrade is equal to <Blank>
+              And VA frm_cGradeControlFlag is equal to "Y"
+              Or GC LotPotency is equal to <Blank>
+              And VA frm_cPotencyControlFlag is equal to "Y"
+0296             F4102 Get Item Branch Grade Potency
+                    GC Short Item No [HIDDEN] -> mnItemNumberShort
+                    UNDEFINED X cPotencyControl
+                    UNDEFINED X cGradeControl
+                    GC Lot Potency <- mnStandardPotency
+                    UNDEFINED X mnFromPotency
+                    UNDEFINED X mnThruPotency
+                    GC Lot Grade <- szStandardGrade
+                    UNDEFINED X szFromGrade
+                    UNDEFINED X szThruGrade
+                    GC Branch Plant -> szBranch
+                    UNDEFINED X cErrorCode
+                    UNDEFINED X cSuppressErrorMessage
+                    UNDEFINED X szErrorMessageID
+                    UNDEFINED X idF4102Pointer
+                    UNDEFINED X mnShelfLifeDays
+                    UNDEFINED X cLotProcessingType
+0297          End If
+0298          // SAR 4478280 End
+0299          //
+0300          // SAR 4715046 Begin
+0301          // SAR 4715046 End
+0302          //
+0303          //
+0304          // SAR #5916270 - Retrive Lot Status Code if blank:
+0305          // 6684208- Begin
+0306          If GC Lot Status Cd is less than or equal to <Blank>
+0307             VA evt_idF4108RowPtr_GENLNG = 0
+0308             F4108, Get Lot Master Row
+                    GC Lot / Serial -> szLot
+                    GC Short Item No [HIDDEN] -> mnShortItemNumber
+                    GC Branch Plant -> szBranchPlant
+                    VA evt_idF4108RowPtr_GENLNG <> idF4108LongRowPtr
+                    "1" -> mnIndex
+                    "3" -> mnKeys
+                    "1" -> cReturnF4108Pointer
+0309             If VA evt_idF4108RowPtr_GENLNG is not equal to <Zero> And VA evt_idF4108RowPtr_GENLNG is not equal to <Null>
+0310                F4108 Get Lot Master Information
+                       GC Lot  Status Cd <- cLotStatus
+                       GC Short Item No [HIDDEN] -> mnShortItemNumber
+                       GC Branch Plant -> szBranchPlant
+                       GC Lot / Serial -> szLotNumber
+0311                Memory, Free Ptr To Data Structure
+                       VA evt_idF4108RowPtr_GENLNG <> idGenericLong
+0312             Else
+0313                F4102 Get Item Manufacturing Information
+                       GC Branch Plant -> szBranch
+                       FI IdentifierShortItem -> mnShortItemNumber
+                       GC Lot  Status Cd <- cLotStatusCode
+0314             End If
+0315          End If
+0316          // End #5916270
+0317          // 6684028-END
+0318       Else
+0319          // validate Lots when Lot processing is required (Lot Process Type = 1,2, or 3
+0320          // and Lot is equal to blanks) and the Calling Application is not Purchasing
+0321          // or Manufacturing.
+0322          //
+0323          If VA frm_SRCE_LotProcessType is equal to "1,2,3"
+              And GC Lot /Serial is less than or equal to <Blank>
+0324             Set Grid Cell Error(FC Grid,  <Current Row>, GC Lot /Serial, "4190")
+0325          End If
+0326       End If
+0327       //
+0328       // validate for Advanced Serial Number processing: performed when SRNR is
+0329       // equal to 3,4, or 5 and either Lot Process Type equals 1,2,3 or Lot/Serial
+0330       // is not <blank>.
+0331       //
+0332       If VA frm_SRNR_SerialNumberRequired is equal to "3,4,5"
+0333          If VA frm_SRCE_LotProcessType is equal to "1,2,3"
+              Or GC Lot /Serial is greater than <Blank>
+0334             //
+0335             If VA frm_SRNR_SerialNumberRequired is equal to "3"
+                 And GC Supplier LotNumber is less than or equal to <Blank>
+0336                Set Grid Cell Error(FC Grid,  <Current Row>, GC Supplier LotNumber, "074V")
+0337             End If
+0338             //
+0339             If VA frm_SRNR_SerialNumberRequired is equal to "4"
+0340                //
+0341                //     SAR 3153803 BEGIN
+0342                //     Do not display the error if the calling application is Sales
+0343                //
+0344                If GC Supplier LotNumber is less than or equal to <Blank>
+                    And FI CallingApplication is not equal to "S"
+0345                   Set Grid Cell Error(FC Grid, <Current Row>, GC Supplier LotNumber, "4718")
+0346                End If
+0347                //
+0348                //     SAR 3153803 END
+0349                //
+0350                If GC Memo Lot 1 is less than or equal to <Blank>
+0351                   Set Grid Cell Error(FC Grid, <Current Row>, GC Memo Lot 1, "4718")
+0352                End If
+0353             End If
+0354             //
+0355             If VA frm_SRNR_SerialNumberRequired is equal to "5"
+0356                If GC Supplier LotNumber is less than or equal to <Blank>
+0357                   Set Grid Cell Error(FC Grid, <Current Row>, GC Supplier LotNumber, "4773")
+0358                End If
+0359                //
+0360                If GC Memo Lot 1 is less than or equal to <Blank>
+0361                   Set Grid Cell Error(FC Grid, <Current Row>, GC Memo Lot 1, "4773")
+0362                End If
+0363                //
+0364                If GC Memo Lot 2 is less than or equal to <Blank>
+0365                   Set Grid Cell Error(FC Grid, <Current Row>, GC Memo Lot 2, "4773")
+0366                End If
+0367             End If
+0368             //
+0369          End If
+0370       End If
+0371    End If
+0372    //
+0373    // complete SN edits by validating Expiration Date
+0374    //
+0375    If FI CallingApplication is equal to "P"
+        Or VA frm_SRCE_LotProcessType is equal to "4"
+0376       If GC Lot /Serial is greater than <Blank>
+0377          If GC ExpirationDate is less than or equal to <Blank>
+0378             F4106 Get Lot Expiration Date Default
+                    GC Branch Plant -> szBranchPlant
+                    BC Item Number - Short (F41021) -> mnShortItemNumber
+                    GC Lot / Serial -> szLotSerialNumber
+                    GC Expiration Date <> jdExpirationDate
+                    UNDEFINED X cErrorCode
+                    <Zero> -> cSuppressErrorMessage
+                    UNDEFINED X szErrorMessageID
+                    UNDEFINED X mnShelfLifeDays
+                    "1" -> cVoidCenturyDefault
+                    UNDEFINED X jdBasedOnDate
+                    UNDEFINED X cLotExpDateCalcMeth
+                    UNDEFINED X jdOnHandDate
+                    UNDEFINED X mnSequenceNoOperation
+                    UNDEFINED X mnWorkOrderDocNo
+                    UNDEFINED X szProgramId
+                    UNDEFINED X mnF3111JobNo
+                    UNDEFINED X cUseTableOrCache
+0379          Else
+0380             If GC ExpirationDate is less than VA frm_date01_TodaysDate
+0381                Set Grid Cell Error(FC Grid,  <Current Row>, GC ExpirationDate, "4937")
+0382             End If
+0383          End If
+0384       End If
+0385    End If
+0386 End If
+0387 //
+0388 // End Lot/Serial Number validation
+0389 //
+0390 // Multiple Lot Date validation Begin
+0391 //
+0392 If FI CallingApplication is equal to "W"
+     And VA frm_cAdvLotProcessingOn_EV01 is equal to "1"
+     And FI cLotExpirationDateCalculat is not equal to "3"
+0393    //
+0394    // SAR 5800541 - call B4101140 first if the expiration date is blank
+0395    If GC ExpirationDate is equal to <Null Date>
+0396       F4106 Get Lot Expiration Date Default
+              GC Branch Plant -> szBranchPlant
+              BC Item Number - Short (F41021) -> mnShortItemNumber
+              GC Lot / Serial -> szLotSerialNumber
+              GC Expiration Date <- jdExpirationDate
+              UNDEFINED X cErrorCode
+              "1" -> cSuppressErrorMessage
+              UNDEFINED X szErrorMessageID
+              UNDEFINED X mnShelfLifeDays
+              UNDEFINED X cVoidCenturyDefault
+              UNDEFINED X jdBasedOnDate
+              FI cLotExpirationDateCalculat -> cLotExpDateCalcMeth
+              FI Datetransactionjulian -> jdOnHandDate
+              UNDEFINED X mnSequenceNoOperation
+              UNDEFINED X mnWorkOrderDocNo
+              "P42053" -> szProgramId
+              UNDEFINED X mnF3111JobNo
+              UNDEFINED X cUseTableOrCache
+0397    End If
+0398    //
+0399    If GC Lot EffectiveDate is equal to <Null Date> And GC ExpirationDate is not equal to <Null Date>
+0400       F4108 Get Lot Expiration Date
+              BC Item Number - Short (F41021) -> mnShortItemNumber
+              GC Branch Plant -> szBranchPlant
+              GC Lot / Serial -> szLotNumber
+              UNDEFINED X szLotGrade
+              UNDEFINED X mnLotPotency
+              UNDEFINED X szLotDescription
+              UNDEFINED X cLotStatusCode
+              GC Expiration Date <> jdExpirationDate
+              UNDEFINED X szSupplierLotNumber
+              UNDEFINED X mnShelfLifeDays
+              UNDEFINED X cFromSideOfTransfer
+              FI Datetransactionjulian -> jdTransactionDate
+              UNDEFINED X cDefaultFromLotMaster
+              UNDEFINED X cSuppressErrorMsg
+              UNDEFINED X cLotProcessType
+              UNDEFINED X cSerialNumberRequired
+              UNDEFINED X szMemoLot1
+              UNDEFINED X szMemoLot2
+              UNDEFINED X szMemoLot3
+              "1" -> cExpirationDateEditMode
+              UNDEFINED X cMemoLotEditMode
+              UNDEFINED X szPrimaryLocationLot
+              UNDEFINED X cInventoryLotCreation
+              UNDEFINED X cErrorCode
+              UNDEFINED X idF4102ItemBranchPtr
+              FI mnTransactionType -> mnTransactionType
+              GC Based On Date <> jdBasedOnDate
+              GC On Hand Date [HIDDEN] <> jdOnHandDate
+              GC Lot Effective Date <> jdLotEffectivityDate
+              GC Sell By Date [HIDDEN] <> jdSellByDate
+              GC Best Before Date [HIDDEN] <> jdBestBeforeDate
+              GC User Lot Date 1 [HIDDEN] <> jdUserLotDate1
+              GC User Lot Date 2 [HIDDEN] <> jdUserLotDate2
+              GC User Lot Date 3 [HIDDEN] <> jdUserLotDate3
+              GC User Lot Date 4 [HIDDEN] <> jdUserLotDate4
+              GC User Lot Date 5 [HIDDEN] <> jdUserLotDate5
+              UNDEFINED X cStockingType
+0401    End If
+0402 End If
+0403 //
+0404 If FI CallingApplication is equal to "P"
+     And VA frm_cAdvLotProcessingOn_EV01 is equal to "1"
+0405    IfGC Lot /Serialis greater than<Blank>AndGC PrimaryLocationis not equal to"P"
+0406       F4108 Get Lot Expiration Date
+              BC Item Number - Short (F41021) -> mnShortItemNumber
+              GC Branch Plant -> szBranchPlant
+              GC Lot / Serial -> szLotNumber
+              UNDEFINED X szLotGrade
+              UNDEFINED X mnLotPotency
+              UNDEFINED X szLotDescription
+              UNDEFINED X cLotStatusCode
+              GC Expiration Date <> jdExpirationDate
+              UNDEFINED X szSupplierLotNumber
+              UNDEFINED X mnShelfLifeDays
+              UNDEFINED X cFromSideOfTransfer
+              FI Datetransactionjulian -> jdTransactionDate
+              UNDEFINED X cDefaultFromLotMaster
+              UNDEFINED X cSuppressErrorMsg
+              UNDEFINED X cLotProcessType
+              UNDEFINED X cSerialNumberRequired
+              UNDEFINED X szMemoLot1
+              UNDEFINED X szMemoLot2
+              UNDEFINED X szMemoLot3
+              "1" -> cExpirationDateEditMode
+              UNDEFINED X cMemoLotEditMode
+              UNDEFINED X szPrimaryLocationLot
+              UNDEFINED X cInventoryLotCreation
+              UNDEFINED X cErrorCode
+              UNDEFINED X idF4102ItemBranchPtr
+              FI mnTransactionType -> mnTransactionType
+              GC Based On Date <> jdBasedOnDate
+              GC On Hand Date [HIDDEN] <> jdOnHandDate
+              GC Lot Effective Date <> jdLotEffectivityDate
+              GC Sell By Date [HIDDEN] <> jdSellByDate
+              GC Best Before Date [HIDDEN] <> jdBestBeforeDate
+              GC User Lot Date 1 [HIDDEN] <> jdUserLotDate1
+              GC User Lot Date 2 [HIDDEN] <> jdUserLotDate2
+              GC User Lot Date 3 [HIDDEN] <> jdUserLotDate3
+              GC User Lot Date 4 [HIDDEN] <> jdUserLotDate4
+              GC User Lot Date 5 [HIDDEN] <> jdUserLotDate5
+              UNDEFINED X cStockingType
+0407       Verify Lot Date Ranges
+              GC Expiration Date -> jdExpirationDate
+              GC Based On Date -> jdBasedOnDate
+              GC On Hand Date [HIDDEN] -> jdOnHandDate
+              GC Lot Effective Date -> jdLotEffectivityDate
+              GC Sell By Date [HIDDEN] -> jdSellByDate
+              GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+              GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+              GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+              GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+              GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+              GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+              FI Datetransactionjulian -> jdDateTransaction
+              UNDEFINED X cSuppressErrorMsgs
+              VA frm_szLotDateError_DTAI <- szErrorMsgID
+0408       If VA frm_szLotDateError_DTAI is not equal to <Blank> And VA frm_szLotDateError_DTAI is not equal to <Null>
+0409          Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC ExpirationDate, VA frm_szLotDateError_DTAI)
+0410          //
+0411          // SAR 7186741
+0412          // The expiration date entered with in the grid will be validated
+0413          // The expiration date entered in the current row should not conflicts with
+0414          // date entered in other grid row already entered
+0415          //
+0416       Else
+0417          If FI CallingApplication is equal to "P" And VA frm_SRCE_LotProcessType is equal to "3"
+0418             //
+0419             // First validate against lot master records if it exist
+0420             //
+0421             VA evt_idF4108RowPtr_GENLNG = 0
+0422             VA evt_ExpiryDate = ""
+0423             F4108, Get Lot Master Row
+                    GC Lot / Serial -> szLot
+                    GC Short Item No [HIDDEN] -> mnShortItemNumber
+                    GC Branch Plant -> szBranchPlant
+                    VA evt_idF4108RowPtr_GENLNG <> idF4108LongRowPtr
+                    "1" -> mnIndex
+                    "3" -> mnKeys
+                    "1" -> cReturnF4108Pointer
+0424             If VA evt_idF4108RowPtr_GENLNG is not equal to <Zero> And VA evt_idF4108RowPtr_GENLNG is not equal to <Null>
+0425                F4108 Get Lot Master Information
+                       VA evt_ExpiryDate <- jdExpirationDate
+                       GC Short Item No [HIDDEN] -> mnShortItemNumber
+                       GC Branch Plant -> szBranchPlant
+                       GC Lot / Serial -> szLotNumber
+0426             End If
+0427             If VA evt_ExpiryDate is not equal to <Null Date>
+0428                If VA evt_ExpiryDate is not equal to GC ExpirationDate
+0429                   Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC ExpirationDate, "1387")
+0430                End If
+0431             Else
+0432                //
+0433                // No record exist in the lot master the expiration date will be validated
+0434                // against the other grid rows for the same lot
+0435                //
+0436                VA evt_LastRecordReadFlag = ""
+0437                While VA evt_LastRecordReadFlag is not equal to "1"
+0438                   Cache, Get Memory
+                          VA evt_CacheItemNumber <- szItemNumber
+                          VA evt_CacheBranchPlant <- szBranchPlant
+                          VA evt_CacheLotSerial <- szLotNumber
+                          VA evt_LastRecordReadFlag <- cLastRecordReadFlag
+                          "1" -> cSuppressTerminateCache
+                          VA evt_CacheSequenceNumber <- nSequenceNumber
+                          VA evt_CacheMultiLocationCursor <> idCacheCursor
+                          VA evt_CacheExpiryDate <- jdDateLayerExpiration
+0439                   If VA evt_LastRecordReadFlag is not equal to "1"
+                       And GC Lot /Serial is equal to VA evt_CacheLotSerial
+                       And FC Item Number is equal to VA evt_CacheItemNumber
+                       And GC SequenceNumber is not equal to VA evt_CacheSequenceNumber
+0440                      If VA evt_CacheExpiryDate is not equal to GC ExpirationDate
+0441                         Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC ExpirationDate, "1387")
+0442                      End If
+0443                   End If
+0444                End While
+0445             End If
+0446          End If
+0447          //
+0448          // SAR 7186741 End
+0449          //
+0450       End If
+0451    End If
+0452 End If
+0453 //
+0454 // Multiple Lot Date Validation end
+0455 //
+0456 If GC Quantity is equal to <Zero>
+0457    //
+0458    //         If original record is changed, update it.
+0459    //
+0460    If GC BranchPlant is equal to GC CTRL Branch
+        And GC Location (DB form) is equal to GC CTRL LOCN
+        And GC Lot /Serial is equal to GC ControlLot Number
+        And GC SequenceNumber is equal to "1"
+0461       Cache, Update Memory
+              FC Item Number -> szItemNumber
+              GC Branch Plant -> szBranchPlant
+              GC Location (DB form) [HIDDEN] -> szLocation
+              GC Lot / Serial -> szLotNumber
+              UNDEFINED X szCatalogNumber
+              UNDEFINED X mnSupplierNumber
+              UNDEFINED X mnOrderNumber
+              UNDEFINED X szDocumentType
+              UNDEFINED X szKeyCompany
+              UNDEFINED X szSuffixNumber
+              GC Quantity -> mnQuantity
+              GC UM -> szUnitOfMeasure
+              UNDEFINED X cSuppressErrorMessage
+              "C" -> cActionCode
+              VA frm_szErrorMessage <- szErrorMessage
+              UNDEFINED X mnOrderLineNumber
+              "1" -> nSequenceNumber
+              GC Memo Lot 1 -> szMemoLot1
+              GC Memo Lot 2 -> szMemoLot2
+              UNDEFINED X szMemoLot3
+              GC Supplier Lot Number -> szVendorLotNumber
+              GC Expiration Date -> jdDateLayerExpiration
+              GC Lot  Status Cd -> cLotStatusCode
+              UNDEFINED X mnIdentifierShortItem
+              UNDEFINED X mnQtyOnHandPrimaryUn
+              GC Lot Potency -> mnLotPotency
+              GC Lot Grade -> szLotGrade
+              UNDEFINED X szDescriptionLine1
+              UNDEFINED X cStockingType
+              UNDEFINED X mnQuantityAvailable
+              GC Secondary Quantity -> mnDualQuantity
+              GC Secondary UM -> szUnitOfMeasureSecondary
+              GC Based On Date -> jdBasedOnDate
+              GC Lot Effective Date -> jdLotEffectivityDate
+              GC On Hand Date [HIDDEN] -> jdOnHandDate
+              GC Sell By Date [HIDDEN] -> jdSellByDate
+              GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+              GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+              GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+              GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+              GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+              GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+              UNDEFINED X cBasePriceIndicator
+              UNDEFINED X cAdjustmentIndicator
+              UNDEFINED X mnAdjustmentRevisionLevel
+              UNDEFINED X cPriceOverrideCode
+0462       Stop Processing
+0463    Else
+0464       //
+0465       //         If not the original record, delete the record from cache.
+0466       //          Reformat  location from Display to DB format
+0467       //        Condition this logic on blank MCU, if blank, there is probably no
+0468       //         record entered, and we don't want to call functions when no need to.
+0469       //
+0470       If GC BranchPlant is not equal to  <Blank>
+0471          Cache, Update Memory
+                 FC Item Number -> szItemNumber
+                 GC CTRL Branch [HIDDEN] -> szBranchPlant
+                 GC CTRL LOCN [HIDDEN] -> szLocation
+                 GC Control Lot Number [HIDDEN] -> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 FI Documentorderinvoicee X mnOrderNumber
+                 FI Ordertype X szDocumentType
+                 FI Companykeyorderno X szKeyCompany
+                 FI Ordersuffix X szSuffixNumber
+                 GC Quantity -> mnQuantity
+                 UNDEFINED X szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "D" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 FI Linenumber X mnOrderLineNumber
+                 GC Sequence Number [HIDDEN] -> nSequenceNumber
+                 UNDEFINED X szMemoLot1
+                 UNDEFINED X szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 UNDEFINED X szVendorLotNumber
+                 UNDEFINED X jdDateLayerExpiration
+                 UNDEFINED X cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grade -> szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 GC Secondary Quantity -> mnDualQuantity
+                 GC Secondary UM -> szUnitOfMeasureSecondary
+                 UNDEFINED X jdBasedOnDate
+                 UNDEFINED X jdLotEffectivityDate
+                 UNDEFINED X jdOnHandDate
+                 UNDEFINED X jdSellByDate
+                 UNDEFINED X jdBestBeforeDate
+                 UNDEFINED X jdUserLotDate1
+                 UNDEFINED X jdUserLotDate2
+                 UNDEFINED X jdUserLotDate3
+                 UNDEFINED X jdUserLotDate4
+                 UNDEFINED X jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0472          GC CTRL Branch = GC BranchPlant
+0473          GC CTRL LOCN = GC Location (DB form)
+0474          GC ControlLot Number = GC Lot /Serial
+0475          Stop Processing
+0476       End If
+0477    End If
+0478    //
+0479    //        If there is a value in the Qty.shipped field, then add record to Cache
+0480    //         if  record already exist in cache, change the record in cache
+0481    //
+0482 Else
+0483    //
+0484    //      If sequence number ==1, then this is original record.
+0485    //
+0486    If GC SequenceNumber is equal to "1"
+0487       //
+0488       //
+0489       //      If LOCN DB != CTRL LOCN, change original record Qty. to zero
+0490       //       And write the new record to cache.
+0491       //      Else If the LOCN DB = CTRL LOCN, update the original record
+0492       //
+0493       If GC Location (DB form) is not equal to GC CTRL LOCN
+           Or GC Lot /Serial is not equal to GC ControlLot Number
+           Or GC BranchPlant is not equal to GC CTRL Branch
+0494          Cache, Update Memory
+                 FC Item Number -> szItemNumber
+                 GC CTRL Branch [HIDDEN] -> szBranchPlant
+                 GC CTRL LOCN [HIDDEN] -> szLocation
+                 GC Control Lot Number [HIDDEN] -> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szDocumentType
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 <Zero> -> mnQuantity
+                 UNDEFINED X szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "C" -> cActionCode
+                 UNDEFINED X szErrorMessage
+                 UNDEFINED X mnOrderLineNumber
+                 "1" -> nSequenceNumber
+                 GC Memo Lot 1 X szMemoLot1
+                 GC Memo Lot 2 X szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 GC Supplier Lot Number X szVendorLotNumber
+                 GC Expiration Date X jdDateLayerExpiration
+                 GC Lot  Status Cd -> cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grade -> szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 <Zero> -> mnDualQuantity
+                 UNDEFINED X szUnitOfMeasureSecondary
+                 GC Based On Date X jdBasedOnDate
+                 GC Lot Effective Date X jdLotEffectivityDate
+                 GC On Hand Date [HIDDEN] X jdOnHandDate
+                 GC Sell By Date [HIDDEN] X jdSellByDate
+                 GC Best Before Date [HIDDEN] X jdBestBeforeDate
+                 GC User Lot Date 1 [HIDDEN] X jdUserLotDate1
+                 GC User Lot Date 2 [HIDDEN] X jdUserLotDate2
+                 GC User Lot Date 3 [HIDDEN] X jdUserLotDate3
+                 GC User Lot Date 4 [HIDDEN] X jdUserLotDate4
+                 GC User Lot Date 5 [HIDDEN] X jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0495          //
+0496          Cache, Update Memory
+                 FC Item Number -> szItemNumber
+                 GC Branch Plant -> szBranchPlant
+                 GC Location (DB form) [HIDDEN] -> szLocation
+                 GC Lot / Serial -> szLotNumber
+                 GC Quantity -> mnQuantity
+                 GC UM -> szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "A" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 GC Sequence Number [HIDDEN] -> nSequenceNumber
+                 GC Memo Lot 1 -> szMemoLot1
+                 GC Memo Lot 2 -> szMemoLot2
+                 GC Supplier Lot Number -> szVendorLotNumber
+                 GC Expiration Date -> jdDateLayerExpiration
+                 GC Lot  Status Cd -> cLotStatusCode
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grade -> szLotGrade
+                 GC Secondary Quantity -> mnDualQuantity
+                 GC Secondary UM -> szUnitOfMeasureSecondary
+                 GC Based On Date -> jdBasedOnDate
+                 GC Lot Effective Date -> jdLotEffectivityDate
+                 GC On Hand Date [HIDDEN] -> jdOnHandDate
+                 GC Sell By Date [HIDDEN] -> jdSellByDate
+                 GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+                 GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+                 GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+                 GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+                 GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+                 GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+0497          GC CTRL Branch = GC BranchPlant
+0498          GC CTRL LOCN = GC Location (DB form)
+0499          GC ControlLot Number = GC Lot /Serial
+0500       Else
+0501          Cache, Update Memory
+                 FC Item Number -> szItemNumber
+                 GC Branch Plant -> szBranchPlant
+                 GC Location (DB form) [HIDDEN] -> szLocation
+                 GC Lot / Serial -> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szDocumentType
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 GC Quantity -> mnQuantity
+                 GC UM -> szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "C" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 UNDEFINED X mnOrderLineNumber
+                 "1" -> nSequenceNumber
+                 GC Memo Lot 1 <> szMemoLot1
+                 GC Memo Lot 2 <> szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 GC Supplier Lot Number <> szVendorLotNumber
+                 GC Expiration Date -> jdDateLayerExpiration
+                 GC Lot  Status Cd -> cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grade -> szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 GC Secondary Quantity -> mnDualQuantity
+                 GC Secondary UM -> szUnitOfMeasureSecondary
+                 GC Based On Date -> jdBasedOnDate
+                 GC Lot Effective Date -> jdLotEffectivityDate
+                 GC On Hand Date [HIDDEN] -> jdOnHandDate
+                 GC Sell By Date [HIDDEN] -> jdSellByDate
+                 GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+                 GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+                 GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+                 GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+                 GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+                 GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0502       End If
+0503    Else
+0504       //
+0505       //      Not the original record. If user changes location with Vis. Assist
+0506       //      delete the old record, and write the new one to cache
+0507       //
+0508       If GC Location (DB form) is not equal to GC CTRL LOCN
+           Or GC Lot /Serial is not equal to GC ControlLot Number
+           Or GC CTRL Branch is not equal to GC BranchPlant
+0509          //
+0510          //      Delete the overwritten record from Cache
+0511          //      Then, add the new values of grid record to cache
+0512          //
+0513          Cache, Update Memory
+                 FC Item Number -> szItemNumber
+                 GC CTRL Branch [HIDDEN] -> szBranchPlant
+                 GC CTRL LOCN [HIDDEN] -> szLocation
+                 GC Control Lot Number [HIDDEN] -> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szDocumentType
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 UNDEFINED X mnQuantity
+                 UNDEFINED X szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "D" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 UNDEFINED X mnOrderLineNumber
+                 GC Sequence Number [HIDDEN] -> nSequenceNumber
+                 UNDEFINED X szMemoLot1
+                 UNDEFINED X szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 UNDEFINED X szVendorLotNumber
+                 UNDEFINED X jdDateLayerExpiration
+                 UNDEFINED X cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 UNDEFINED X mnLotPotency
+                 UNDEFINED X szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 UNDEFINED X mnDualQuantity
+                 UNDEFINED X szUnitOfMeasureSecondary
+                 UNDEFINED X jdBasedOnDate
+                 UNDEFINED X jdLotEffectivityDate
+                 UNDEFINED X jdOnHandDate
+                 UNDEFINED X jdSellByDate
+                 UNDEFINED X jdBestBeforeDate
+                 UNDEFINED X jdUserLotDate1
+                 UNDEFINED X jdUserLotDate2
+                 UNDEFINED X jdUserLotDate3
+                 UNDEFINED X jdUserLotDate4
+                 UNDEFINED X jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0514          Cache, Update Memory
+                 FC Item Number <> szItemNumber
+                 GC Branch Plant <> szBranchPlant
+                 GC Location (DB form) [HIDDEN] <> szLocation
+                 GC Lot / Serial <> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szDocumentType
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 GC Quantity -> mnQuantity
+                 GC UM -> szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "A" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 UNDEFINED X mnOrderLineNumber
+                 GC Sequence Number [HIDDEN] -> nSequenceNumber
+                 GC Memo Lot 1 -> szMemoLot1
+                 GC Memo Lot 2 -> szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 GC Supplier Lot Number -> szVendorLotNumber
+                 GC Expiration Date -> jdDateLayerExpiration
+                 GC Lot  Status Cd -> cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grade -> szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 GC Secondary Quantity -> mnDualQuantity
+                 GC Secondary UM -> szUnitOfMeasureSecondary
+                 GC Based On Date -> jdBasedOnDate
+                 GC Lot Effective Date -> jdLotEffectivityDate
+                 GC On Hand Date [HIDDEN] -> jdOnHandDate
+                 GC Sell By Date [HIDDEN] -> jdSellByDate
+                 GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+                 GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+                 GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+                 GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+                 GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+                 GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0515          GC CTRL Branch = GC BranchPlant
+0516          GC CTRL LOCN = GC Location (DB form)
+0517          GC ControlLot Number = GC Lot /Serial
+0518       Else
+0519          //
+0520          //       The location, lot and branch did not change, add to cache like it is
+0521          //
+0522          Cache, Update Memory
+                 FC Item Number <> szItemNumber
+                 GC Branch Plant <> szBranchPlant
+                 GC Location (DB form) [HIDDEN] <> szLocation
+                 GC Lot / Serial <> szLotNumber
+                 UNDEFINED X szCatalogNumber
+                 UNDEFINED X mnSupplierNumber
+                 UNDEFINED X mnOrderNumber
+                 UNDEFINED X szDocumentType
+                 UNDEFINED X szKeyCompany
+                 UNDEFINED X szSuffixNumber
+                 GC Quantity -> mnQuantity
+                 GC UM -> szUnitOfMeasure
+                 "1" -> cSuppressErrorMessage
+                 "A" -> cActionCode
+                 VA frm_szErrorMessage <- szErrorMessage
+                 UNDEFINED X mnOrderLineNumber
+                 GC Sequence Number [HIDDEN] -> nSequenceNumber
+                 GC Memo Lot 1 <> szMemoLot1
+                 GC Memo Lot 2 <> szMemoLot2
+                 UNDEFINED X szMemoLot3
+                 GC Supplier Lot Number <> szVendorLotNumber
+                 GC Expiration Date -> jdDateLayerExpiration
+                 GC Lot  Status Cd -> cLotStatusCode
+                 UNDEFINED X mnIdentifierShortItem
+                 UNDEFINED X mnQtyOnHandPrimaryUn
+                 GC Lot Potency -> mnLotPotency
+                 GC Lot Grade -> szLotGrade
+                 UNDEFINED X szDescriptionLine1
+                 UNDEFINED X cStockingType
+                 UNDEFINED X mnQuantityAvailable
+                 GC Secondary Quantity -> mnDualQuantity
+                 GC Secondary UM -> szUnitOfMeasureSecondary
+                 GC Based On Date -> jdBasedOnDate
+                 GC Lot Effective Date -> jdLotEffectivityDate
+                 GC On Hand Date [HIDDEN] -> jdOnHandDate
+                 GC Sell By Date [HIDDEN] -> jdSellByDate
+                 GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+                 GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+                 GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+                 GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+                 GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+                 GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+                 UNDEFINED X cBasePriceIndicator
+                 UNDEFINED X cAdjustmentIndicator
+                 UNDEFINED X mnAdjustmentRevisionLevel
+                 UNDEFINED X cPriceOverrideCode
+0523          //
+0524 !          If GC CTRLExp.Date is not equal to GC ExpirationDate
+0525 !             VA evt_cExpDateWasChanged = "1"
+0526 !          Else
+0527 !             VA evt_cExpDateWasChanged = "0"
+0528 !          End If
+0529          //
+0530          //       If receive error msg., then record already exists in cache, update.
+0531          //
+0532          If VA frm_szErrorMessage is equal to "2669"
+              And VA frm_EV01_FindButtonClicked is not equal to "1"
+0533             //
+0534 !             If VA frm_SRCE_LotProcessType is equal to "4"
+     ! And VA evt_cExpDateWasChanged is not equal to "1"
+0535 !                Set Grid Cell Error(FC Grid,  <Current Row>, GC Lot /Serial, "4714")
+0536 !                FC QAVALTotalSelected = [FC QAVALTotalSelected]-[GC Quantity]
+0537 !                GC Quantity = "0"
+0538 !                Stop Processing
+0539 !             Else
+0540                Cache, Update Memory
+                       FC Item Number -> szItemNumber
+                       GC Branch Plant -> szBranchPlant
+                       GC Location (DB form) [HIDDEN] -> szLocation
+                       GC Lot / Serial -> szLotNumber
+                       UNDEFINED X szCatalogNumber
+                       UNDEFINED X mnSupplierNumber
+                       UNDEFINED X mnOrderNumber
+                       UNDEFINED X szDocumentType
+                       UNDEFINED X szKeyCompany
+                       UNDEFINED X szSuffixNumber
+                       GC Quantity -> mnQuantity
+                       GC UM -> szUnitOfMeasure
+                       "1" -> cSuppressErrorMessage
+                       "C" -> cActionCode
+                       VA frm_szErrorMessage <- szErrorMessage
+                       UNDEFINED X mnOrderLineNumber
+                       GC Sequence Number [HIDDEN] -> nSequenceNumber
+                       GC Memo Lot 1 <> szMemoLot1
+                       GC Memo Lot 2 <> szMemoLot2
+                       UNDEFINED X szMemoLot3
+                       GC Supplier Lot Number <> szVendorLotNumber
+                       GC Expiration Date -> jdDateLayerExpiration
+                       GC Lot  Status Cd -> cLotStatusCode
+                       UNDEFINED X mnIdentifierShortItem
+                       UNDEFINED X mnQtyOnHandPrimaryUn
+                       GC Lot Potency -> mnLotPotency
+                       GC Lot Grade -> szLotGrade
+                       UNDEFINED X szDescriptionLine1
+                       UNDEFINED X cStockingType
+                       UNDEFINED X mnQuantityAvailable
+                       GC Secondary Quantity -> mnDualQuantity
+                       GC Secondary UM -> szUnitOfMeasureSecondary
+                       GC Based On Date -> jdBasedOnDate
+                       GC Lot Effective Date -> jdLotEffectivityDate
+                       GC On Hand Date [HIDDEN] -> jdOnHandDate
+                       GC Sell By Date [HIDDEN] -> jdSellByDate
+                       GC Best Before Date [HIDDEN] -> jdBestBeforeDate
+                       GC User Lot Date 1 [HIDDEN] -> jdUserLotDate1
+                       GC User Lot Date 2 [HIDDEN] -> jdUserLotDate2
+                       GC User Lot Date 3 [HIDDEN] -> jdUserLotDate3
+                       GC User Lot Date 4 [HIDDEN] -> jdUserLotDate4
+                       GC User Lot Date 5 [HIDDEN] -> jdUserLotDate5
+                       UNDEFINED X cBasePriceIndicator
+                       UNDEFINED X cAdjustmentIndicator
+                       UNDEFINED X mnAdjustmentRevisionLevel
+                       UNDEFINED X cPriceOverrideCode
+0541 !             End If
+0542          End If
+0543       End If
+0544    End If
+0545 End If
+0546 // End if Quantity equal to zero
+
+=======================================================================
+     CONTROL:  GRIDCOL Quantity
+     EVENT:  Col Exited & Changed - Inline
+-----------------------------------------------------------------------
+     OPT: Disabled Event
+0001 //
+0002 If GC Quantity is not equal to GC mnCtrlQTY
+0003    VA frm_cPassedEdits_Purch = "0"
+0004 End If
+0005 //
+0006 // SAR 4071711 do not allow Multi Location if calling application is Sales and
+0007 // quantity is opposite sign value of quantity from calling application
+0008 //
+0009 If FI CallingApplication is not equal to "P"
+0010    If FI Unitsquantityshipped is greater than <Zero>
+        And GC Quantity is less than <Zero>
+0011       Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Quantity, "155V")
+0012    Else
+0013       If FI Unitsquantityshipped is less than <Zero>
+           And GC Quantity is greater than <Zero>
+0014          Set Grid Cell Error(FC Grid, <Currently Selected Row>, GC Quantity, "155V")
+0015       End If
+0016    End If
+0017 End If
+0018 //
+0019 // end SAR 4071711
+0020 //
+0021 VA frm_mnDelta = [GC QuantityShipped]-[GC mnCtrlQTY]
+0022 FC QAVALTotalSelected = [FC QAVALTotalSelected]+[VA frm_mnDelta]
+0023 GC mnCtrlQTY = GC QuantityShipped
+0024 //
+0025 If FC QAVALTotalSelected is not equal to FC QuantityFromOrder
+0026    If FC QAVALTotalSelected is less than FC QuantityFromOrder
+0027       FC mnQtyUnder = [FC QuantityFromOrder]-[FC QAVALTotalSelected]
+0028       FC mnQtyOver = 0
+0029       Hide Control(FC mnQtyOver)
+0030       Show Control(FC mnQtyUnder)
+0031    Else
+0032       FC mnQtyOver = [FC QAVALTotalSelected]-[FC QuantityFromOrder]
+0033       FC mnQtyUnder = 0
+0034       Hide Control(FC mnQtyUnder)
+0035       Show Control(FC mnQtyOver)
+0036    End If
+0037 Else
+0038    FC mnQtyUnder = 0
+0039    Show Control(FC mnQtyUnder)
+0040    Hide Control(FC mnQtyOver)
+0041 End If
+
+=======================================================================
+     CONTROL:  GRIDCOL Branch Plant
+     EVENT:  Col Exited & Changed - Inline
+-----------------------------------------------------------------------
+     OPT: Disabled Event
+0001 F41021 Get Item Location Row
+        GC Branch Plant -> szBranchPlant
+        FI IdentifierShortItem -> mnShortItemNumber
+        GC Location (DB form) [HIDDEN] -> szLocation
+        GC Lot / Serial -> szLotNumber
+        "1" -> mnIndex
+        "4" -> mnKeys
+        "1" -> cCallType
+        UNDEFINED X cReturnRecord
+        UNDEFINED X idItemLocationRecord
+        <Blank> -> cSuppressErrorMessages
+        VA frm_szErrorMessage <- szErrorMessageID
+0002 If VA frm_szErrorMessage is equal to "1"
+0003    Set Grid Cell Error(FC Grid,  <Current Row>, GC BranchPlant, "0647")
+0004    Set Grid Color(FC Grid,  <Current Row>, GC BranchPlant, <Default>)
+0005 End If
+
+=======================================================================
+     CONTROL:  GRIDCOL Expiration Date
+     EVENT:  Col Exited & Changed - Inline
+-----------------------------------------------------------------------
+     evt_ExpDateChngFlag
+0001 If VA evt_ExpDateChngFlag is not equal to "1"
+0002    GC CTRLExp.Date = GC ExpirationDate
+0003    VA evt_ExpDateChngFlag = "1"
+0004 End If
+
+=======================================================================
+     CONTROL:  EDIT Location
+     EVENT:  Control Exited/Changed-Inline
+-----------------------------------------------------------------------
+     evt_Location_Save_LOCN
+0001 // SAR 3242638 - Location field is now formatted from display to file format
+0002 // 07/19/99 RM5906864
+0003 //
+0004 VA evt_Location_Save_LOCN = FC Location
+0005 F4100 Format Location
+        FC Business Unit -> szCostCenter
+        VA evt_Location_Save_LOCN -> szDisplayFormatLocation
+        FC Location <- szFileFormatLocation
+        UNDEFINED X cValidate
+        UNDEFINED X szAisle
+        UNDEFINED X szBin
+        UNDEFINED X szLocation3
+        UNDEFINED X szLocation4
+        UNDEFINED X szLocation5
+        UNDEFINED X szLocation6
+        UNDEFINED X szLocation7
+        UNDEFINED X szLocation8
+        UNDEFINED X szLocation9
+        UNDEFINED X szLocation10
+        "2" -> cMode
+        UNDEFINED X idBranchConstantRecord
+0006 // End SAR 3242638
+
+Wednesday January 15, 2014  11:47

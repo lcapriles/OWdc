@@ -1,0 +1,2148 @@
+
+/*****************************************************************************
+ *    Header File:  B3101250.h
+ *
+ *    Description:  Work Order Routings Header File
+ *
+ *        History:
+ *          Date        Programmer  SAR#     - Description
+ *          ----------  ----------  -------------------------------------------
+ *   Author 08/06/1997  K. Barker   1246344  - Created  
+ *          01/16/1998  K. Barker   1834816  - Add R31410 (W.O. Processing) functionality
+ *          02/17/1998  Toan Tran   1834816 -  Added Configurator & KIT functionality
+ *          07/06/1999  KS5885194   3141132  - Added OrigCompItem for Config GT
+ *          07/26/1999  KS5885194   3232245  - Added Variable for Master Rtg GT
+ *          01/11/2000  PK5957354   3692583 - Remove Resource Over Capacity Processing Option in P3112.
+ *          01/14/2000  PK5957354   3548733 - Requested dates with operation overlap incorrect.
+ *          02/14/2000  PK5957354   3771409 - Default Move and Queue hrs from W/C for manual entry.
+ *          02/25/2000  PK5957354   3927830 - Remove Call to update F4801T.
+ *          03/15/2000  PK5957354   3708531 - D1 Current Costs Missing 
+ *          03/28/2000  PK5957354   4059915 - Second and Third Item No. truncated.
+ *          04/10/2000  PK5957354   4095131 - G/L Class Codes not created in F31172.
+ *			   05/02/2000	PK5957354	4178148 - Add Proc. Option to default Queue & Move Hrs from WC. 
+ *          06/20/2000  PK5957354   4240626 - F3102 costs doubled when routings re-attached.
+ *          08/17/2000	PK5957354	4289227 - Duration Computation incorrect with overlap 
+ *          09/28/2000  PK5957354	4555839 - B9 Database Changes - Delete PBTM & PETM from EditLine DS.
+ *          10/16/2000  PK5957354   4425760 - Default Queue & Move Hrs in Batch mode 
+ *          10/19/2000  GL6870322   4606333 - Review key change handling and GT when there is a key change
+ *          10/24/2000  DN6031262   4562158 - Added the Components operation sequence
+ *                                             number to T31410 and T3111.
+ *          11/27/2000  PK5957354   4701349 - Fix Build Errors - Remove reference to B3100420.h
+ *          01/29/2001  NS6859983   4719717 - SuperBackflush doesn't work w/ manual routing
+ *          03/09/2001  AK5861061   4989346 - Activity Based Costing Enh.
+ *          08/14/2001  RI7158441   5024474 - Routing only, status updated.
+ *			   08/20/2001  EB6834031   5073559 - Media Objects not copied over.
+ *			   08/24/2001  LR5644366   5337260 - Resource Assignment integration
+ *          09/03/2001  CR5898171   5450633 - SWM Changes for System 31
+ *          09/28/2001  PB7066512   5444081 - Function h file not update
+ *          10/15/2001  GC6868935   4885301 - Employee Rate Not Used/CSMS
+ *          10/28/2001  RC6804801   5341437 - Improve Leadtime/Backschedul'g
+ *          10/31/2001  LR5644366   5584869 - Job Category Code Maintenance
+ *			   01/28/2002	RC6804801	5335336 - DurationWrong, crew size GT 1
+ *          02/19/2002  PB7066512   5824674 - Transaction UOM incorrect
+ *          05/13/2002  RC6804801   5867025 - Remove Edit Cache in B3101250
+ *          05/17/2002  CR5898171   5949661 - SWM Changes for Routing
+ *          05/23/2002  RC6804801   6003798 - AS/  400 Build Errors
+ *          06/03/2002  GU5840244   4657763 - Typdefed T31410 DS.
+ *          07/09/2002  GU5840244   6050404 - Typdefed T48013 DS.
+ *          07/16/2002  RC6804801   6027722 - EPM-Batch Net Change Processin
+ *				09/17/2002	AV7200531	6175231 - UORG not changing w/WO qty chg
+ *				11/26/2002	MR7026369	6301787 - Add to cache B3101250 failed
+ *          03/26/2003  AV7200531   6516981 - CRP calc multiplied by var
+ *          11/10/2003  LH6027861   6473589 - Order Promising 3.1
+ *
+ * Copyright (c) J.D. Edwards World Source Company, 1997
+ *
+ * This unpublished material is proprietary to J.D. Edwards World Source 
+ * Company.  All rights reserved.  The methods and techniques described 
+ * herein are considered trade secrets and/or confidential.  Reproduction
+ * or distribution, in whole or in part, is forbidden except by express
+ * written permission of J.D. Edwards World Source Company.
+ ****************************************************************************/
+
+#ifndef __B3101250_H
+#define __B3101250_H
+
+/*****************************************************************************
+ * Table Header Inclusions
+ ****************************************************************************/
+//#include <f30006.h>
+//#include <f3111.h>
+//#include <f4311.h>
+//#include <f33ui001.h>
+//#include <f3003.h>
+//#include <f3112.h>
+//#include <f31122.h>
+//#include <f4801.h>
+//#include <f34a10.h>
+/*****************************************************************************
+ * External Business Function Header Inclusions
+ ****************************************************************************/
+#include <b4000520.h>
+#include <b4200180.h>
+#include <x0005.h>
+
+/**** Begin Doc External Function Calls ****/
+
+#include <b3000450.h>      /* DSD3000450 - F3009 Get Manufacturing Constants */
+#include <b3100250.h>      /* DSD3100250 - Calculate Shrinkage Quantity */
+#include <b3100310.h>      /* DSD3100310 - F4801 Get Work Order Data */
+#include <b4000260.h>      /* D4000260B  - Get Line Type Constants */
+#include <b4000970.h>      /* DSD4000970 - F4101 Get Item Master Information */
+#include <b9800100.h>      /* DSD9800100 - Get Audit Info */
+#include <n3104350.h>      /* F3115 File Server */
+
+/**** Edit Line External Function Calls ****/
+
+#include <iscolbu.h>       /* DSDXX00009 - F0006 Is Column in Business Unit Table */
+#include <b3000150.h>      /* DSD3000150 - F30008 Get WC Rates Data */ 
+#include <b3000030.h>      /* DSD3000030 - F30006 Get WC Data */         
+#include <xf41021.h>       /* DSDXF41021 - VerifyAndGetItemLocation */
+#include <b3101940.h>      /* DSD3101940 - F31172 Cache Processing */
+#include <n1701130.h>      /* DSD1701130 - Calculate Parts Labor Pricing */
+#include <n1700980.h>      /* DSD1700980 - Retrieve G/L Class Codes from F4817 */
+#include <n1600110.h>      /* DSD1600110 - F1609 Cost Management Constant */
+#include <n1600120.h>      /* DSD1600120 - F1640 Activity Master File Server */
+#include <b3100500.h>      /* DSD3100500 - Get Emp. Rate when labor source is 2 (SW/M only) */
+
+/**** Edit Doc External Function Calls ****/
+
+#include <b3000520.h>      /* DSD3000520 - F3003 Get Routing Row */
+#include <b3101760.h>      /* DSD3101760 - WO Generation, Copy Routing from Standard */
+#include <b3100240.h>      /* DSD3100240 - Schedule Operation Dates */
+#include <b3100330.h>      /* DSD3100330 - VerifyAndGetWorkOrderMaster */
+#include <b3100410.h>      /* DSD3100410 - F4301 Update PO Hold Code */
+#include <b3100440.h>      /* DSD3100440 - F3102 Update Current Cost Variance */
+#include <b3100460.h>      /* DSD3100460 - Work Order, Calculate Hours and Costs */
+#include <b3100520.h>      /* DSD3100520 - Calculate Shrinkage Quantity */
+#include <b3101260.h>      /* DSD3101260 - F3111 Edit Document */
+#include <b4000260.h>      /* DSD4000260 - Get Line Type Constants */
+#include <b4200180.h>      /* DSD4200180 - F4104 Get Cross Reference Item */
+#include <x4101.h>         /* DSDX4101A  - F4101 Get Item Master Row */
+#include <x4801.h>         /* DSDX4801A  - F4801 Begin Document
+                              DSDX4801B  - F4801 Edit Document
+                              DSDX4801C  - F4801 End Document */
+#include <b3101430.h>      /* DSD3101430 - Write Outsource Records */
+#include <b4300520.h>      /* DSD4300520 - Retrieve PO Detail Rows */
+#include <n3201170.h>      /* DSD3200460 - Load Configurator & KIT Routing CACHE  */
+#include <b3200390.h>      /* DSD3200390 - Routing CACHE for KIT and Configurator */
+#include <n1700410.h>      /* DSD1700410 - F31172 Process Master Date  */
+#include <n1701410.h>      /* DSD1701410 - F31172 Derive CSMS Information  */
+#include <n3003220.h>	   /*  DSD3003220 - Calculate Quantity With Shrink */
+#include <n3103030.h>      /* F3102 File Server for Actual Costing          */
+
+/**** End Doc External Function Calls ****/
+
+#include <xt4311z1.h>      /* Purchase Order Entry MBF 
+                              DSDF4311Z1A - Begin Document
+                              DSDF4311Z1B - Edit Line
+                              DSDF4311Z1D - End Document */
+#include <b3100470.h>      /* Verify And Get Parts List */
+#include <b0000130.h>      /* Get Company from Business Unit */
+#include <x0903.h>         /* F0008 Get fiscal Year Period Number */
+#include <b3101240.h>      /* Verify Activity Rule Status Code */
+#include <b4300050.h>      /* F0002 Get Purchase Order Next Number */
+#include <b0000045.h>      /* Math Numeric to String, Convert */
+#include <b3101240.h>      /* F4101 Get Outside Operations Item Number */
+#include <b3100840.h>      /* Update WO Standard Cost Variance for Configured Parts */
+#include <b0000083.h>      /* Left Pad Math Numeric to String with 0s */
+#include <b3102440.h>	   /* Copy Generic text from Routing File */
+#include	<b4803100.h>		/* F48311 Update Dates and Hours */
+#include	<n4803060.h>		/* F48311 Process Master Assignments Table */
+#include <b31p0050.h>      /* F4801 Cache Project Process */
+
+#include <b34a1130.h>      /* APS Routing Cache function*/
+#include <b34a2100.h>      /* Delete Resource List and Routing*/
+#include <b34a2090.h>      /* Publish Transactional Work Order*/
+#include <b34a2060.h>      /* Add Parts List To APS Cache*/
+
+/*****************************************************************************
+ * Global Definitions
+ ****************************************************************************/
+//JCHAR szUoMFrom[3];*/Modificado:	Luis Capriles,		Fecha:	10/12/2009 - Conversion a UniCode
+
+//JCHAR szUoMTo[3]	;*/Modificado:	Luis Capriles,		Fecha:	10/12/2009 - Conversion a UniCode
+
+/*****************************************************************************
+ * Structure Definitions
+ ****************************************************************************/
+
+/********************************************************
+ *  DO NOT MODIFY THIS DATA STRUCTURE WITHOUT UPDATING  *
+ *  D3102390 DATA STRUCTURE                             *
+ ********************************************************/
+
+/* Cache Name B3101250A - F3112 Structure */
+typedef struct
+{
+   MATH_NUMERIC	mnOrderNumber;	               /* Cache Key    */
+   int				nCacheRowNumber;              /* Cache Key    */
+   MATH_NUMERIC	mnOperationSequence;          /* F3112 WLOPSQ */
+   JCHAR				szTypeOfOperation[3];         /* F3112 WLOPSC */
+   JCHAR				szCostCenter[13];             /* F3112 WLMCU  */
+   JCHAR				szOrderType[3];               /* F3112 WLDCTO */
+   JCHAR				szOrderSuffix[4];             /* F3112 WLSFXO */
+   JCHAR				szRoutingType[4];             /* F3112 WLTRT  */
+   MATH_NUMERIC	mnShortItemNumber;            /* F3112 WLKIT  */
+   JCHAR				sz2ndItemNumber[26];          /* F3112 WLKITL */
+   JCHAR				sz3rdItemNumber[26];          /* F3112 WLKITA */
+   JCHAR				szBranchPlant[13];            /* F3112 WLMMCU */
+   JCHAR				szLineID[13];     	         /* F3112 WLLINE */
+   JCHAR				szAutoLoadDescription[5];     /* F3112 WLALD  */
+   JCHAR				szDescription[31];	         /* F3112 WLDSC1 */
+   JCHAR				szOperationStatus[3];         /* F3112 WLOPST */
+   JCHAR				szInspectionCode[3];          /* F3112 WLINPE */
+   JCHAR				cTimeBasisCode;   	         /* F3112 WLTIMB */
+   JCHAR				cLaborOrMachine;  	         /* F3112 WLLAMC */
+   JCHAR				cPayPointCode; 	            /* F3112 WLBFPF */
+   JCHAR				cPayPointStatus;		         /* F3112 WLPPRF */
+   JCHAR				szJobCategory[7];		         /* F3112 WLJBCD */
+   MATH_NUMERIC	mnAddressBookNumber;          /* F3112 WLAN8  */
+   MATH_NUMERIC	mnCriticalRatio;              /* F3112 WLCRTR */
+   MATH_NUMERIC	mnSlackTimeRatio;             /* F3112 WLSLTR */
+   JDEDATE			jdTransactionDate;            /* F3112 WLTRDJ */
+   JDEDATE			jdRequestedDate;              /* F3112 WLDRQJ */
+   JDEDATE			jdStartDate;                  /* F3112 WLSTRT */
+   JDEDATE			jdCompletionDate;             /* F3112 WLSTRX */
+   JDEDATE			jdEffectiveFromDate;		      /* F3003 IREFFF */
+   MATH_NUMERIC	mnBeginTime;                  /* F3112 WLPBTM */
+   MATH_NUMERIC	mnEndTime;  	               /* F3112 WLPETM */
+   JCHAR				cRequestedShiftCode;          /* F3112 WLRSFT */
+   JCHAR				cStartShiftCode;              /* F3112 WLSSFT */
+   JCHAR				cCompletedShiftCode;          /* F3112 WLCSFT */
+   MATH_NUMERIC	mnPercentLeadtime;            /* F3112 WLLTPC */
+   MATH_NUMERIC	mnPercentOverlap;             /* F3112 WLPOVR */
+   MATH_NUMERIC	mnPercentOpPlannedYield;      /* F3112 WLOPYP */
+   MATH_NUMERIC	mnPercentCumPlannedYield;     /* F3112 WLCPYP */
+   MATH_NUMERIC	mnNextOperation;              /* F3112 WLNXOP */
+   MATH_NUMERIC	mnCrewSize; 	               /* F3112 WLSETC */
+   MATH_NUMERIC	mnMoveTime; 	               /* F3112 WLMOVD */
+   MATH_NUMERIC	mnQueueTime;		            /* F3112 WLQUED */
+   MATH_NUMERIC	mnStdMachineRunTime;          /* F3112 WLRUNM */
+   MATH_NUMERIC	mnStdLaborRunTime;            /* F3112 WLRUNL */
+   MATH_NUMERIC	mnStdLaborSetupTime;          /* F3112 WLSETL */
+   MATH_NUMERIC	mnActualMachineRunTime;       /* F3112 WLMACA */
+   MATH_NUMERIC	mnActualLaborRunTime;         /* F3112 WLLABA */
+   MATH_NUMERIC	mnActualLaborSetupTime;       /* F3112 WLSETA */
+   MATH_NUMERIC	mnShrinkFactor;               /* F3112 WLOPSR */
+   MATH_NUMERIC	mnQtyOrdered;                 /* F3112 WLUORG */
+   MATH_NUMERIC	mnQtyCompleted;               /* F3112 WLSOCN */
+   MATH_NUMERIC	mnQtyScrapped;                /* F3112 WLSOQS */
+   MATH_NUMERIC	mnQtyAtOperation;             /* F3112 WLQMTO */
+   MATH_NUMERIC	mnPieceWorkRate;              /* F3112 WLPWRT */
+   JCHAR				szUOM[3];         	         /* F3112 WLUOM  */
+   MATH_NUMERIC	mnHoursUnaccDirectLabor;      /* F3112 WLCTS1 */
+   MATH_NUMERIC	mnHoursUnaccSetupLabor;       /* F3112 WLCTS2 */
+   MATH_NUMERIC	mnHoursUnaccMachine;          /* F3112 WLCTS3 */
+   MATH_NUMERIC	mnAmountUnaccDirectLabor;     /* F3112 WLCTS4 */
+   MATH_NUMERIC	mnAmountUnaccSetupLabor;      /* F3112 WLCTS5 */
+   MATH_NUMERIC	mnAmountUnaccMachine;         /* F3112 WLCTS6 */
+   JCHAR				szUnitNumber[13]; 	         /* F3112 WLAPID */
+   JCHAR				szMessageNumber[13];	         /* F3112 WLSHNO */
+   JCHAR				szBusinessProjectUnit[13];    /* F3112 WLOMCU */
+   JCHAR				szObjectAccount[13];	         /* F3112 WLOBJ  */
+   JCHAR				szSubsidiary[9];  	         /* F3112 WLSUB  */
+   MATH_NUMERIC	mnVendor;                     /* F3112 WLVEND */
+   JCHAR           cPOY;                        /* F3003 IRPOY  */
+   JCHAR				szKeyCompany[6];              /* F3112 WLRKCO */
+	JCHAR			   szRelatedNumber[9];           /* F3112 WLRORN */
+	JCHAR			   szRelatedOrderType[3];        /* F3112 WLRCTO */
+	MATH_NUMERIC	mnRelatedLineNumber;          /* F3112 WLRLLN */
+   JCHAR				szDocumentType[3];            /* F3112 WLDCT  */
+   JCHAR				szUserReservedCode[3];        /* F3112 WLURCD */
+   JDEDATE			jdUserReservedDate;           /* F3112 WLURDT */
+   MATH_NUMERIC	mnUserReservedAmount;         /* F3112 WLURAT */
+   JCHAR				szUserReservedReference[16];  /* F3112 WLURRF */
+   MATH_NUMERIC	mnUserReservedNumber;         /* F3112 WLURAB */
+   JCHAR				szUserID[11];                 /* F3112 WLUSER */
+   JCHAR				szProgramID[11];              /* F3112 WLPID  */
+   JCHAR				szWorkStationID[11];          /* F3112 WLJOBN */
+   JDEDATE			jdDateUpdated;                /* F3112 WLUPMJ */
+   MATH_NUMERIC	mnTimeOfDay;                  /* F3112 WLTDAY */
+   JCHAR				szConsProd[5];                /* GC field     */
+   JCHAR				szIntermediateUOM[3];
+   MATH_NUMERIC	mnIntermediateQty;
+   JCHAR				cIntermediateFlag;
+   JCHAR				cIngredientsFlag;
+   JCHAR				cCoByFlag;
+   JCHAR				cChangeFlag;                  /* Work field for determining if record
+                                                   * should be processed in End Document */
+   JCHAR				cActionCode;                  /* Work field for determining if record
+                                                   * should be added, updated or deleted 
+                                                   * from the Cache to F3112 in End Document */
+   MATH_NUMERIC	mnOrigOperationSequence;      /* Key value used to retrieve record 
+                                                   * from the F3112 if changed */
+   JCHAR				szOrigTypeOfOperation[3];     /* Key value used to retrieve record 
+                                                   * from the F3112 if changed */
+   JCHAR				szOrigCostCenter[13];         /* Key value used to retrieve record 
+                                                   * from the F3112 if changed */
+   JDEDATE			jdOrigStartDate;              /* used to store original F3112 WLSTRT */
+   JDEDATE			jdOrigRequestedDate;
+   MATH_NUMERIC	mnOrigQtyOrdered;             /* used to store original F3112 WLUORG */
+   JCHAR				szAssignedName[31];
+   JCHAR           szUMCapacityUOM[3];           /* B73.3. Used for repetitive Manufacturing */
+   MATH_NUMERIC   mnRunLaborCurrent;            /* B73.3. Used for repetitive Manufacturing */
+   MATH_NUMERIC   mnRunMachineCurrent;          /* B73.3. Used for repetitive Manufacturing */
+   JCHAR           szCostType[4];                /* B73.3. Used for repetitive Manufacturing */
+   MATH_NUMERIC   mnSetupLaborCurrent;          /* B73.3. Used for repetitive Manufacturing */
+   JCHAR           szLocation[20];               /* B73.3. Used for repetitive Manufacturing */   
+   MATH_NUMERIC   mnResourceUnitsconsumed;      /* B73.3. Used for repetitive Manufacturing */
+   JCHAR           szWorkcenterBranch[13];       /* B73.3. Used for repetitive Manufacturing */
+   JCHAR           szProcessModule[5];           /* Used by CSMS module  */
+   MATH_NUMERIC   mnOrigCompItem;               /* Config Generic Text */
+   MATH_NUMERIC   mnAssetNumber;                /* ADD new NUMB field */
+   JCHAR           cCopyFlag;                    
+   JCHAR           cKeyChanged;                  /* SAR 4606333 */
+   JCHAR           szActivityCode[11];           /* SAR 4989346 */
+   MATH_NUMERIC   mnRunMachineRate;				/* MPM 5093787 */
+   MATH_NUMERIC   mnRunLaborRate;				/* MPM 5093787 */
+   MATH_NUMERIC   mnSetupLaborRate;				/* MPM 5093787 */
+	JCHAR          szCompentencyType[4];                
+   JCHAR          szCompentencyCode[11];               
+   MATH_NUMERIC   mnCompetencyLevelFrom;               
+   MATH_NUMERIC   mnCompetencyLevelTo;                 
+   JCHAR          cRuleMatchFlag;   
+   MATH_NUMERIC	mnF3003StdMachineRunTime;     /* F3112 WLCMHR - WIP Reval */
+   MATH_NUMERIC	mnF3003StdLaborRunTime;       /* F3112 WLCLHR - WIP Reval */
+   MATH_NUMERIC	mnF3003StdLaborSetupTime;     /* F3112 WLCSHR - WIP Reval */
+   MATH_NUMERIC	mnPercentOpYield; /*- not in main cache */          
+   MATH_NUMERIC	mnPercentCumYield; /*- not in main cache*/
+   MATH_NUMERIC	mnWorkIntermediateQty;             
+   JCHAR				cShiftCodeRequested;          
+   JCHAR				cShiftCodeStart; 
+   MATH_NUMERIC	mnCostRunMachineHours;        
+   MATH_NUMERIC	mnCostRunLaborHours;                                           
+   JCHAR          cPayableYN;               
+   JCHAR          cBillableYN;           
+   MATH_NUMERIC   mnActBillableRate;          
+   MATH_NUMERIC   mnActPayableRate;          
+   MATH_NUMERIC   mnEstimatedAmount;             
+   MATH_NUMERIC   mnActualDollars;             
+   MATH_NUMERIC   mnAmountOriginalDollars;     
+   MATH_NUMERIC   mnEstimatedBillableRate;      
+   MATH_NUMERIC   mnEstimatedPayableRate;      
+   MATH_NUMERIC   mnEstimatedPaymentAmount;     
+   MATH_NUMERIC   mnTotalBilled;              
+   MATH_NUMERIC   mnClaimAmount;               
+   JDEDATE        jdBillDate;                  
+   JDEDATE        jdPaidDate;                
+   MATH_NUMERIC   mnPaymentAmount;               
+   MATH_NUMERIC   mnLaborRatePerHour1;    
+   JDEDATE        jdActualStartDate;          
+   MATH_NUMERIC   mnStartTime;            
+   MATH_NUMERIC   mnEstimatedEndingTime;           
+   JCHAR          szCostType_2[4];                             
+   JCHAR          szPriceAdjustScheduleService[9]; 
+   JCHAR          szPriceAdjustScheduleFour[9]; 
+   MATH_NUMERIC	mnNegativeOperationSequence; 
+   JCHAR          cPOActivityStatus;                   
+   MATH_NUMERIC   mnPOJobNumber;             
+   MATH_NUMERIC   mnProcessID;
+   MATH_NUMERIC   mnTransactionID;
+   MATH_NUMERIC   mnCanceledPOVendor;                  
+   JCHAR          szCanceledPONumber[9];
+   MATH_NUMERIC   mnCanceledPOLineNo;
+   MATH_NUMERIC   mnSuccessiveOperation;               
+   MATH_NUMERIC   mnPrecedenceOffset;                  
+   JCHAR          szPrecedenceType[31]; 
+   JCHAR          cPrimeLoadCode;
+}DSB3101250CACHE, *LPDSB3101250CACHE;               
+
+typedef struct
+{
+   MATH_NUMERIC	mnOrderNumber;                /* F3112 WLDOCO */
+   int				nCacheRowNumber;              /* Cache Key    */
+
+}DSB3101250CACHEKEY, *LPDSB3101250CACHEKEY;
+
+typedef struct
+{
+   MATH_NUMERIC   mnOrderNumber;                
+   MATH_NUMERIC	mnNegativeOperationSequence;          
+   JCHAR           szTypeOfOperation[3];         
+   JCHAR           szCostCenter[13];           
+
+}DSB3101250CACHEKEY1, *LPDSB3101250CACHEKEY1;
+
+/* Cache Name B3101250B - Work structure.  One record contains the F4801 information that 
+ * relates to the Order Number and audit information.
+ */
+typedef struct
+{
+   MATH_NUMERIC   mnJobNumber;                  /* Work Cache key        */
+   MATH_NUMERIC   mnF4801OrderNumber;           /* F4801 FC field WADOCO */
+   MATH_NUMERIC   mnCopyOrderNumber;            /* Copy by Order Number WADOCO */
+   MATH_NUMERIC   mnMediaObjCopyOrderNumber;    /* Copy by Order Number WADOCO for Media Objects */
+   LPF4801        lpF4801Pointer;               /* Retrieved in Begin Document and stored */
+   LPF4101        lpF4101Pointer;               /* in the Work Cache     */
+   MATH_NUMERIC   mnQuantityConverted;          /* work field            */
+   MATH_NUMERIC   mnBatchQuantity;
+   MATH_NUMERIC	mnRoutingBatchQty;			   /* Used by Generic Text function */
+   JCHAR           szPrimaryUOM[3];              /* F4101 work field      */
+   JCHAR           szStdUOMConversion[3];
+   JCHAR           szPurchasingUOM[3];
+   JCHAR           szPrimaryItemNumber[27];      /* FC field              */
+   JCHAR           szSecondItemNumber[27];       /* F4101                 */
+   JCHAR           szThirdItemNumber[27];        /* F4101                 */
+   JCHAR           szItemDescription1[31];       /* FC field              */
+   JCHAR           szItemDescription2[31];       /* FC field              */
+   JCHAR           szUserID[11];                 /* used for F3112 and F4801 update 
+                                                 * (Audit Information)   */
+   JCHAR           szProgramID[11];              /*  "      "       "     */ 
+   JCHAR           szWorkStationID[11];          /*  "      "       "     */
+   JDEDATE        jdDateUpdated;                /*  "      "       "     */
+   MATH_NUMERIC   mnTimeOfDay;                  /*  "      "       "     */
+   JCHAR           cInventoryInterfaceFlag;      /* Work Field from B4000260 -
+                                                   Get Line Type Constants */
+   JCHAR           cF4102LeadTimeType;           /* F4102 MFG Information */
+   JCHAR           cF4102PotencyControl;         /* F4102 MFG Information */
+   MATH_NUMERIC   mnF4102StandardPotency;       /* F4102 MFG Information */
+   JCHAR           cF4102StockingType;           /* F4102 MFG Information */
+   JCHAR           szF4102PrintMessage[11];      /* F4102 MFG Information */
+   MATH_NUMERIC   mnF4102LeadTimeLevel;         /* F4102 MFG Information */
+   JCHAR           cF4102StockNonstock;          /* F4102 MFG Information */
+   MATH_NUMERIC   mnF4102AcctingCostQty;        /* F4102 MFG Information */
+   JCHAR           szF4102RevisionLevel[4];      /* F4102 MFG Information */
+   MATH_NUMERIC   mnF4102ShrinkFactor;          /* F4102 MFG Information */
+   JCHAR           cF4102ShrinkFactorMethod;     /* F4102 MFG Information */
+   JCHAR           szF4102TempFlashMsg[3];       /* F4102 MFG Information */
+   JCHAR           cProcessMFGFlag;              /* Work Field used for Process versus
+                                                   Discrete MFG */
+   HREQUEST       hRequestF3112;                /* Store F3112 hRequest */
+   HREQUEST       hRequestF3003;                /* Store F3003 hRequest */
+   HREQUEST       hRequestF31122;               /* Store F31122 hRequest */
+   HREQUEST       hRequestF33UI001;             /* Store F33UI001 hRequest */
+   HREQUEST       hRequestF30006;               /* Store F30006 hRequest */
+   HREQUEST       hRequestF3111;                /* Store F30006 hRequest */
+   HREQUEST       hRequestF4311;                /* Store F4311 hRequest */
+   HREQUEST       hRequestF4102;                /* Store F4102 hRequest */
+   HREQUEST       hRequestF4801Tag;             /* Table I/O Work Fields    */
+   NID            szF4801TagTableID;            /* Table I/O work Fields */
+   ID             idF4801TagIndexID;            /* "      "      "       */
+   JCHAR           cMessageFlag1;                /* Set in Begin Document */
+   JCHAR           cMessageFlag2;                /* Set in Begin Document */
+   JCHAR           cF4801UpdateFlag;             /* Set in Edit Document to update the
+                                                   F4801's Flash Message,
+                                                   Estimated Hours, Amount after all
+                                                   processing completed */       
+   MATH_NUMERIC   mnF4801EstimatedAmount;       /* Set in Edit Line 
+                                                   (Accumulated through all records) */
+   MATH_NUMERIC   mnF4801EstimatedHours;        /* Set in Edit Line 
+                                                   (Accumulated through all records) */
+   int            nF3112CacheCounter;           /* Incremented by one for each add
+                                                   to the cache - key field  */
+   JCHAR           cPOCreatePartsListFlag;       /* Processing Option         */
+   JCHAR           szExportTransactionType[9];   /* Processing Option         */
+   JCHAR           szPOVersion[11];              /* Processing Option         */
+   JCHAR			   cPOCopyRoutingText;				/* Processing Option		 */
+   JCHAR           cBackscheduleQueueMoveHrsFlag;/* Processing Option Sar 5341437 */
+   JCHAR           szPartsListVersion[11];                
+   JCHAR           szHoldCode[3];
+   JCHAR           szBackscheduleUOM[3];  
+   JCHAR           cBackScheduleFlag;   
+   MATH_NUMERIC   mnCopyShortItemNumber;        /* Used by Parts List - Copy by Item */
+   JCHAR           szCopyBranchPlant[13];        /*        "                   "      */
+   JCHAR           cInitialize;
+   HJDECURSOR     hEditCacheCursor;             /* Retrieval from Edit Cache */
+   JCHAR           cProcessEdits;
+   JCHAR           cF3009MasterRoutingFlag;      /* Work Field from B3000450 - 
+                                                   Get MFG Constants */
+   JCHAR           cOverheadPerOrRate;           /* F3009 IAPORR */
+   JCHAR           cModifyCostbyWCEfficiency;    /* F3009 IAMWCE */
+   JCHAR           cIncludeVarLaborOH;           /* F3009 IAIVO  */
+   JCHAR           cCalcVarOnDirectLabor;        /* F3009 IACVDL */
+   JCHAR           cCalcVarOnSetupLabor;         /* F3009 IACVSL */
+   JCHAR           cIncludeWCEfficiencyInOH;     /* F3009 IACVDS */
+   JCHAR           cIncludeFixedLaborOH;         /* F3009 IAIFO  */
+   JCHAR           cCalcFixedOnDirectLabor;      /* F3009 IACFDL */
+   JCHAR           cCalcFixedOnSetupLabor;       /* F3009 IACFSL */
+   JCHAR           cIncludeFixedMachineOH;       /* F3009 IAIFMO */
+   JCHAR           cIncludeVarMachineOH;         /* F3009 IAIVMO */  
+   JCHAR           cBackFlushOptions;            /* F3009 IABFOP */
+   JCHAR           cCommitmentControl;           /* F3009 IAFLD1 */
+   JCHAR           cHardSoftCommit;              /* F3009 IAFLD2 */
+   JCHAR           cLaborRateSource;             /* F3009 IALARS */
+   JCHAR           cMachineRateSource;           /* F3009 IAMARS */
+   MATH_NUMERIC   mnStandardPotency;            /* F4102 IBSTDP */
+   JCHAR           cPotencyControl;              /* F4102 IBOT1Y */
+   JCHAR           szLineType[3];
+   MATH_NUMERIC   mnWOConversionFactor;
+   JCHAR           cInteractiveBatchFlag;
+   JCHAR           szPurchaseOrderType[3];       /* R31410 Processing Option */
+   JCHAR           szLastStatusCode[4];          /* R31410 Processing Option */
+   JCHAR           cLoadWONoInJournalEntries;    /* R31410 Processing Option */
+   JCHAR           szPOLineType[3];              /* R31410 Processing Option */
+   JCHAR           cStandardCostCalculation;     /* R31410 Processing Option */
+   JCHAR           cEffectivityCheckingDate;     /* R31410 Processing Option */
+   JCHAR           cUpdatePLRtgFlag;             /* R31410 Processing Option */
+   JCHAR           cBatchGenerateRtgs;           /* R31410 Processing Option */
+   MATH_NUMERIC	mnDirectLaborHours;           /* Hours - Unaccounted Direct Labor */
+   MATH_NUMERIC	mnDirectLaborCost;            /* Amount - Unaccounted Direct Labor */
+   MATH_NUMERIC	mnDirectSetupHours;           /* Hours - Unaccounted Setup Labor */
+   MATH_NUMERIC	mnDirectSetupCost;            /* Amount - Unaccounted Setup Labor */
+   MATH_NUMERIC	mnDirectMachineHours;         /* Hours - Unaccounted Machine Hours */
+   MATH_NUMERIC	mnDirectMachineCost;          /* Amount - Unaccounted Machine */
+   MATH_NUMERIC	mnEfficiencyCost;             /* Amount - Unaccounted Direct Labor */
+   MATH_NUMERIC	mnMachineVarOHCost;           /* Amount - Unaccounted Setup Labor */
+   MATH_NUMERIC	mnMachineFixedOHCost;         /* Amount - Unaccounted Machine */
+   MATH_NUMERIC	mnLaborVarOHHours;            /* Hours - Unaccounted Direct Labor */
+   MATH_NUMERIC	mnLaborVarOHCost;             /* Amount - Unaccounted Direct Labor */
+   MATH_NUMERIC	mnLaborFixedOHHours;          /* Hours - Unaccounted Setup Labor */
+   MATH_NUMERIC	mnLaborFixedOHCost;
+   MATH_NUMERIC	mnPrevDownTimeAtOp;			  /* Hours - Previous Operation downtime */
+   MATH_NUMERIC	mnComponentFactor;            /* Configurator hour factor field   */
+   MATH_NUMERIC	mnOperationSequenceNo;        /* Configurator specific step       */
+   MATH_NUMERIC	mnF33UI001Counter;            /* F33UI001 wlukid */
+   MATH_NUMERIC   mnShrinkQuantity;
+   JCHAR           szPOEVersion[11]; 
+   MATH_NUMERIC   mnMaxOperSeq;                 /* Stores the highest operation seq
+                                                 * a Routng.
+                                                 */
+   MATH_NUMERIC   mnOrigCompItem;               /* Config Generic Text */
+   MATH_NUMERIC   mnMasterRtgGTItemNumber;      /* Master Rtg Item No. */
+   LPF4801T       lpF4801TagPointer;            /* Pointer to F4801T */
+   JCHAR           szLineIdentifier[13];         /* Line Identifier in F4801T */
+   JCHAR           szCostMethod[4];              /* Cost Method in F4801T*/
+   JCHAR           cN3103030Error;               /* To Indicate that the File Server has returned an error */
+   MATH_NUMERIC   mnProcessID;                  /* Process ID for Purchase Order */
+   MATH_NUMERIC   mnTransactionID;              /* Transaction ID for Purchase Order  */
+   JCHAR           cBatchRouting;                /* Bypass batch routing - R31410 PO */       
+   JCHAR           cRoutingGenericText;          /* Bypass attaching generic text in batch mode - R31410 PO */      
+   MATH_NUMERIC   mnEstimatedDownTime;          
+   MATH_NUMERIC   mnAdvPricingProcessID;        /* Advance Pricing Datastructure changes */
+   MATH_NUMERIC   mnAdvPricingTransactionID;    /* Advance Pricing Datastructure changes */
+   JCHAR           cCopyFlag;                    /* Flag to determine whether manual entry or copy item/WO */
+   JCHAR           cOutsideOperationFlag;        
+   JCHAR           szCostType[4];                
+   JCHAR			   cDefaultQueueMoveHrsFlag;
+   JCHAR           cPOOverrideNoOfEmp;            /* P3112 Processing Option */
+   JCHAR			   cQuoteIsAccepted;				    /* MPM 5093787 Project Attribute */
+   JCHAR			   cOverrideEstimatesFlag;		    /* MPM 5093787 Project Attribute */
+   MATH_NUMERIC   mnPlannedSpecialUnits;         /* MPM - Estimates */       
+   MATH_NUMERIC   mnPlannedSpecialAmt;           /* MPM - Estimates */    
+   MATH_NUMERIC   mnPlannedOther;                /* MPM - Estimates */
+   MATH_NUMERIC   mnPlannedMaterial;             /* MPM - Estimates */ 
+   MATH_NUMERIC   mnPlannedLabor;                /* MPM - Estimates */
+   MATH_NUMERIC   mnOriginalQuantity;            /* MPM - Net Change */
+   JDEDATE        jdOriginalRequestedDate;       /* MPM - Net Change */
+   JDEDATE        jdOriginalStartDate;           /* MPM - Net Change */
+   JCHAR           szOriginalUnitOfMeasure[3];    /* MPM - Net Change */
+   MATH_NUMERIC   mnOriginalQuantityConverted;   /* MPM - Net Change */
+   JCHAR           cCostByWorkCenter;             /* SAR 5025012 - Flag to tell whether or not to track Costs by WC*/
+   JCHAR			   szF4801WOStatusCode[3];		    /* SAR 5024474 - To indicate the status of Work Order*/
+   int            nCSMSCacheRowNumber;                 
+   int            nCSMSLastRowNumberUsed;     
+   JCHAR          szR31410Version[11];
+   JCHAR          cF4102APSConstraintsFlag; 
+}DSB3101250WORKCACHE, *LPDSB3101250WORKCACHE;
+
+typedef struct
+{
+   MATH_NUMERIC   mnJobNumber;                 /* Work Cache key */
+}DSB3101250WORKCACHEKEY, *LPDSB3101250WORKCACHEKEY;
+
+
+/* Internal Structure - used to pass common variables */
+typedef struct
+{
+   HUSER          hUser;
+   LPBHVRCOM      lpBhvrCom;
+   LPVOID         lpVoid;
+   JCHAR           szErrorMessageID[11];
+   JCHAR           cSuppressErrorMessages;
+   HCACHE         hCaches[4];
+   HJDECURSOR     hCursors[4];
+   ID             idFieldID;
+   JCHAR           cCallingFunction;
+   JCHAR           cProcessEdits;
+   MATH_NUMERIC   mnOrderNumber;             /* Key to Work Cache */
+   MATH_NUMERIC	mnOperationSequence;       /* Key to F3112 Cache */
+   MATH_NUMERIC   mnShortItemNumber;         /* used as input in GetItemNumber */
+   JCHAR			   szBranchPlant[13];         /* used as input in GetItemNumber */
+   JCHAR           szPrimaryItemNumber[27];
+   JCHAR           szPrimaryUOM[3];
+   JCHAR           szStdUOMConversion[3];
+   JCHAR           szVersion[11];             /* P31123 Version Name */
+   ID             idF4801Pointer;
+   JCHAR           cKeyChanged;               /* indicates key change */
+   ID             idIndexID;
+   NID            szTableID;
+   F3112          dsF3112;
+   F3003          dsF3003;
+   KEY1_F3112     dsF3112Key1;
+   JCHAR           cF4311MBFEditLineCalled;
+   int            nCacheRowNumber;
+   MATH_NUMERIC   mnJobNumber;
+   JDEDATE        jdF4801DateRequested;
+   JDEDATE        jdOriginalStartDate;
+   JCHAR           cF30006PrimeLoadCode;       /* F30006 iwpilc */
+   MATH_NUMERIC   mnF30006NumberOfEmployees;  /* F30006 iwqmad */
+   MATH_NUMERIC   mnF30006NumberOfMachines;   /* F30006 iwnoma */
+   MATH_NUMERIC   mnF30006QueueHours;         /* F30006 iwqued */
+   MATH_NUMERIC   mnF30006MoveHours;          /* F30006 iwmovd */
+   MATH_NUMERIC   mnF30006WorkCenterShiftHours; /* F30006 iwwrhr + iwwrh2 + iwwrh3 Sar 5341437 */
+   int            nHoldCodeFlag;
+   JCHAR           szHoldCode[3];
+   JCHAR           cMessageCode;
+   JCHAR           cErrorCode;
+   JCHAR           szF4104ItemNumber[26];
+   MATH_NUMERIC   mnF4104ShortItemNumber;   
+   MATH_NUMERIC   mnBatchQuantity;
+   JCHAR           cWhichVerifyF3003Routing;
+   JCHAR           szCostCenter[13];             /* Saved MCU  */
+   JCHAR           cFirstTime;
+   int            nBlankOPSCRecords;
+   int            nEditCacheRecords;
+   int            nCacheRecords;
+   JCHAR           szProcessModule[5];
+   JCHAR           cInteractiveBatchFlag;
+   MATH_NUMERIC   mnSavedVendor;
+   MATH_NUMERIC   mnPOLineNumber;
+   MATH_NUMERIC   mnPOJobNumber;
+   MATH_NUMERIC   mnPODocumentNumber;
+   JCHAR           szPOKeyCompany[6];
+   JCHAR           szCacheName[50];
+   JCHAR           szWorkCacheName[50];
+   JCHAR           szEditCacheName[50];
+   MATH_NUMERIC   mnStandardCapacity;            
+   JCHAR           cFirstPass;
+   JCHAR           cUpdateX4801Cache;            /* B31P0050 flag */   
+   JCHAR           cConfiguratorCacheEdit;
+   MATH_NUMERIC   mnX4801WorkFileLineNo;        /* F4801 Cache Key Member */       
+   BOOL           bOrderPromising;                         
+   BOOL           bAPSRoutingCacheRecords; 
+   JCHAR          cPrimaryOutputEvent;
+}DSB3101250INTERNAL, *LPDSB3101250INTERNAL;
+
+typedef struct
+{
+   JCHAR           iwmcu[13];
+   JCHAR           iwpilc;
+   MATH_NUMERIC   iwqmad;
+   MATH_NUMERIC   iwnoma;
+   MATH_NUMERIC   iwmovd; 
+   MATH_NUMERIC   iwqued;
+                                                 
+}DSB3101250F30006, *LPDSB3101250F30006;
+
+typedef struct
+{
+   JCHAR           ibot1y;
+   MATH_NUMERIC   ibstdp;
+   JCHAR           ibstkt;
+   JCHAR           ibinmg[11];
+   JCHAR           ibsns;
+   JCHAR           ibmerl[4];
+   MATH_NUMERIC   ibltlv;
+   MATH_NUMERIC   ibacq;
+   JCHAR           ibmrpp;
+   MATH_NUMERIC   ibsrnk;
+   JCHAR           ibsrkf;
+   JCHAR           ibtfla[3];
+   JCHAR           ibapsc; 
+}DSB3101250F4102, *LPDSB3101250F4102;
+
+typedef struct
+{   
+   MATH_NUMERIC   mnHoursPerDay;                /* Backscheduling Work Variable */
+   MATH_NUMERIC   mnPreviousOperationOverlap;   /* Backscheduling Work Variable */
+   MATH_NUMERIC   mnHoursBalance;               /* Backscheduling Work Variable */
+   MATH_NUMERIC   mnHoursPrevious;              /* Backscheduling Work Variable */
+   MATH_NUMERIC   mnHoursRun;                   /* Backscheduling Work Variable */
+   MATH_NUMERIC   mnNumberOfOperations;         /* Backscheduling Work Variable */
+   JDEDATE        jdWOStartDate;                /* Backscheduling Work Variable */
+   JDEDATE        jdWORequestedDate;            /* Backscheduling Work Variable */
+   JDEDATE        jdOperationStartDate;         /* Backscheduling Work Variable */
+   JDEDATE        jdOperationRequestedDate;     /* Backscheduling Work Variable */
+   JDEDATE        jdBeginningDate;              /* Backscheduling Work Variable */
+   JDEDATE        jdRoutingStartDate;           /* Backscheduling Work Variable */
+   JDEDATE        jdPrevOperReqDate;            /* Backscheduling Overlap Variable */
+
+}DSB3101250BACKSCHEDULE, *LPDSB3101250BACKSCHEDULE;
+                                                
+/* SAR 4606333 begin */
+
+typedef struct tagDS3101250GT3112A
+{
+   JCHAR              szBranchPlant[13];                        
+   MATH_NUMERIC      mnOperationSequence;                 
+   JCHAR              szTypeOperationCode[3];              
+   MATH_NUMERIC      mnOrderNumber;                    
+} DS3101250GT3112A, *LPDS3101250GT3112A;
+	
+/* SAR 4606333 end */
+
+/* F34A10 Structure */
+typedef struct tagDS3101250F34A10
+{
+   JCHAR           n0sy[5];
+   JCHAR           n0ev03;
+   JCHAR           n0opver[11]; 
+} DS3101250F34A10, *LPDS3101250F34A10;
+
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: Manufacturing Work Order Processing
+ *    Template ID:   T48013
+ *    Generated:     Thu Aug 22 11:18:40 2002
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_T48013
+#define DATASTRUCTURE_T48013
+
+typedef struct tagDST48013
+{
+  JCHAR             szOrdertype[3];                      
+  JCHAR             szUnitofmeasure[3];                  
+  JCHAR             cTypewo;                             
+  JCHAR             cPrioritywo;                         
+  JCHAR             szStatuscodewo[3];                   
+  JCHAR             szCategoriesworkorder001[5];         
+  JCHAR             szCategoriesworkorder002[4];         
+  JCHAR             szCategoriesworkorder003[4];         
+  JCHAR             szSOHoldCode[3];                     
+  JCHAR             szPOHoldcode[3];                     
+  JCHAR             szBillAvailVersion[11];              
+  JCHAR             cCreateCoByflag;                     
+  JCHAR             szF4102CategoryCode1[5];             
+  JCHAR             szCrossReferenceTypeCode[3];         
+  JCHAR             szECOWOEntryVersion[11];             
+  JCHAR             szAssignSerialNosVersion[11];        
+  JCHAR             szHeldStatus[3];                     
+  JCHAR             szChangedStatusBeforeCutoff[3];      
+  JCHAR             szCancelledStatus[3];                
+  JCHAR             szTypeTransaction[9];                
+  JCHAR             szCutoffStatus[3];                   
+  JCHAR             cBillTypeflag;                       
+  JCHAR             cRoutingTypeflag;                    
+  JCHAR             cCostCenterFlag;                     
+  JCHAR             cRecalculationFlag;                  
+  JCHAR             cItemBranchFlag;                     
+  JCHAR             szRoutingVersion[11];                
+  JCHAR             szPartsListVersion[11];              
+  JCHAR             szF4102CategoryCode2[5];             
+  JCHAR             szF4102CategoryCode3[5];             
+  JCHAR             cBackscheduleQueueMoveHrsFlag;       
+  JCHAR             szMaterialIssuesVersion[11];         
+  JCHAR             szChangedStatusAfterCutoff[3];       
+  JCHAR             szConfigItemSpecsVersion[11];        
+  JCHAR             szRelatedCFGOrdersVersion[11];       
+} DST48013, *LPDST48013;
+ 
+#define IDERRszOrdertype_1                        1L
+#define IDERRszUnitofmeasure_2                    2L
+#define IDERRcTypewo_3                            3L
+#define IDERRcPrioritywo_4                        4L
+#define IDERRszStatuscodewo_5                     5L
+#define IDERRszCategoriesworkorder001_6           6L
+#define IDERRszCategoriesworkorder002_7           7L
+#define IDERRszCategoriesworkorder003_8           8L
+#define IDERRszSOHoldCode_12                      12L
+#define IDERRszPOHoldcode_13                      13L
+#define IDERRszBillAvailVersion_16                16L
+#define IDERRcCreateCoByflag_17                   17L
+#define IDERRszF4102CategoryCode1_23              23L
+#define IDERRszCrossReferenceTypeCode_26          26L
+#define IDERRszECOWOEntryVersion_27               27L
+#define IDERRszAssignSerialNosVersion_28          28L
+#define IDERRszHeldStatus_34                      34L
+#define IDERRszChangedStatusBeforeCutoff_35       35L
+#define IDERRszCancelledStatus_36                 36L
+#define IDERRszTypeTransaction_37                 37L
+#define IDERRszCutoffStatus_38                    38L
+#define IDERRcBillTypeflag_39                     39L
+#define IDERRcRoutingTypeflag_40                  40L
+#define IDERRcCostCenterFlag_41                   41L
+#define IDERRcRecalculationFlag_42                42L
+#define IDERRcItemBranchFlag_44                   44L
+#define IDERRszRoutingVersion_45                  45L
+#define IDERRszPartsListVersion_46                46L
+#define IDERRszF4102CategoryCode2_47              47L
+#define IDERRszF4102CategoryCode3_48              48L
+#define IDERRcBackscheduleQueueMoveHrsFlag_49     49L
+#define IDERRszMaterialIssuesVersion_50           50L
+#define IDERRszChangedStatusAfterCutoff_51        51L
+#define IDERRszConfigItemSpecsVersion_52          52L
+#define IDERRszRelatedCFGOrdersVersion_54         54L
+
+#endif
+
+/* SAR 5444081 Begin */
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: Work Order Routing
+ *    Template ID:   T3112
+ *    Generated:     Sun Oct 28 14:06:42 2001
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_T3112
+#define DATASTRUCTURE_T3112
+
+typedef struct tagDST3112
+{
+  JCHAR              cCreatePartsListFlag;                
+  JCHAR              szTransactionType[9];                
+  JCHAR              szVersion[11];                       
+  JCHAR              cCopyRoutingText;                    
+  JCHAR              cDefaultQueueMoveHrsFlag;            
+  JCHAR              szABCWorkbenchVersion[11];           
+  JCHAR              szResourceAssignment_VERS[11];       
+  JCHAR              cPOOverrideNoOfEmp;                  
+} DST3112, *LPDST3112;
+
+#define IDERRcCreatePartsListFlag_12              12L
+#define IDERRszTransactionType_13                 13L
+#define IDERRszVersion_14                         14L
+#define IDERRcCopyRoutingText_15                  15L
+#define IDERRcDefaultQueueMoveHrsFlag_16          16L
+#define IDERRszABCWorkbenchVersion_17             17L
+#define IDERRszResourceAssignment_VERS_18         18L
+#define IDERRcPOOverrideNoOfEmp_19                19L
+
+#endif
+
+
+
+/* SAR 5444081 end */
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: Work Order Generation
+ *    Template ID:   T31410
+ *    Generated:     Mon Jun 03 11:07:10 2002
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_T31410
+#define DATASTRUCTURE_T31410
+
+typedef struct tagDST31410
+{
+  JCHAR             cGeneratePartsListRoutings;          
+  JCHAR             szWOStatusCode[3];                   
+  JCHAR             szWorkOrderPrintVersion[11];         
+  JCHAR             szShortageReport[11];                
+  JCHAR             szBarCoding[11];                     
+  JCHAR             szInventoryIssues[11];               
+  JCHAR             szBackSchedulingUOM[3];              
+  JCHAR             szPurchaseOrderType[3];              
+  JCHAR             szPurchaseOrderLineType[3];          
+  JCHAR             szPurchaseOrderBeginStatus[4];       
+  JCHAR             szKitLineType[3];                    
+  JCHAR             szKitNextStatusCode[4];              
+  JCHAR             cStandardCostCalculation;            
+  JCHAR             cPrintPartsList;                     
+  JCHAR             cPrintPartsList2ndLine;              
+  JCHAR             cPartsListOnNewPage;                 
+  JCHAR             cPrintWorkOrders;                    
+  JCHAR             cPrintRoutingInstructs;              
+  JCHAR             cRoutingOnNewPage;                   
+  JCHAR             cPrintShopPacketSumm;                
+  JCHAR             cPrintSalesOrderTextLine;            
+  JCHAR             cAllowSubstitute;                    
+  JCHAR             cLoadWONoInJournalEntries;           
+  JCHAR             cEffectivityCheckingDate;            
+  JCHAR             cAllowPriorRevisionLevels;           
+  JCHAR             cPrintConsolidatedPartsList;         
+  JCHAR             cPrintPartsListText;                 
+  JCHAR             cPrintRoutingText;                   
+  JCHAR             szWOTypeTransaction[9];              
+  JCHAR             szPartsListTypeTransaction[9];       
+  JCHAR             szRoutingTypeTransaction[9];         
+  JCHAR             cIssueAllMaterial;                   
+  JCHAR             szPOEVersion[11];                    
+  JCHAR             cPickRequestFlag;                    
+  JCHAR             szLocSelVersion[11];                 
+  JCHAR             szStagingLocation[21];               
+  JCHAR             cCheckStagingAvail;                  
+  JCHAR             cF4801BeforeImage;                   
+  JCHAR             cPartsListBeforeImage;               
+  JCHAR             cRoutingBeforeImage;                 
+  JCHAR             cUpdatePLRtgFlag;                    
+  JCHAR             cBypassCommitments;                  
+  JCHAR             szMFGSpecsVersion[11];               
+  JCHAR             cBatchBOM;                           
+  JCHAR             cPartsListGenericText;               
+  JCHAR             cBatchRouting;                       
+  JCHAR             cRoutingGenericText;                 
+  JCHAR             cBackscheduleQueueMoveHrsFlag;       
+  JCHAR             cDefaultQueueMoveHrsFlag;            
+  JCHAR             cPhantOpSeq;                         
+  JCHAR             cPOOverrideNoOfEmp;                  
+  JCHAR             cConfigGenText;                      
+} DST31410, *LPDST31410;
+ 
+#define IDERRcGeneratePartsListRoutings_1         1L
+#define IDERRszWOStatusCode_7                     7L
+#define IDERRszWorkOrderPrintVersion_8            8L
+#define IDERRszShortageReport_11                  11L
+#define IDERRszBarCoding_12                       12L
+#define IDERRszInventoryIssues_13                 13L
+#define IDERRszBackSchedulingUOM_18               18L
+#define IDERRszPurchaseOrderType_19               19L
+#define IDERRszPurchaseOrderLineType_20           20L
+#define IDERRszPurchaseOrderBeginStatus_21        21L
+#define IDERRszKitLineType_22                     22L
+#define IDERRszKitNextStatusCode_23               23L
+#define IDERRcStandardCostCalculation_24          24L
+#define IDERRcPrintPartsList_25                   25L
+#define IDERRcPrintPartsList2ndLine_26            26L
+#define IDERRcPartsListOnNewPage_27               27L
+#define IDERRcPrintWorkOrders_28                  28L
+#define IDERRcPrintRoutingInstructs_31            31L
+#define IDERRcRoutingOnNewPage_32                 32L
+#define IDERRcPrintShopPacketSumm_33              33L
+#define IDERRcPrintSalesOrderTextLine_34          34L
+#define IDERRcAllowSubstitute_35                  35L
+#define IDERRcLoadWONoInJournalEntries_36         36L
+#define IDERRcEffectivityCheckingDate_38          38L
+#define IDERRcAllowPriorRevisionLevels_40         40L
+#define IDERRcPrintConsolidatedPartsList_41       41L
+#define IDERRcPrintPartsListText_42               42L
+#define IDERRcPrintRoutingText_43                 43L
+#define IDERRszWOTypeTransaction_44               44L
+#define IDERRszPartsListTypeTransaction_45        45L
+#define IDERRszRoutingTypeTransaction_46          46L
+#define IDERRcIssueAllMaterial_47                 47L
+#define IDERRszPOEVersion_48                      48L
+#define IDERRcPickRequestFlag_49                  49L
+#define IDERRszLocSelVersion_50                   50L
+#define IDERRszStagingLocation_51                 51L
+#define IDERRcCheckStagingAvail_52                52L
+#define IDERRcF4801BeforeImage_53                 53L
+#define IDERRcPartsListBeforeImage_54             54L
+#define IDERRcRoutingBeforeImage_55               55L
+#define IDERRcUpdatePLRtgFlag_56                  56L
+#define IDERRcBypassCommitments_57                57L
+#define IDERRszMFGSpecsVersion_59                 59L
+#define IDERRcBatchBOM_60                         60L
+#define IDERRcPartsListGenericText_61             61L
+#define IDERRcBatchRouting_62                     62L
+#define IDERRcRoutingGenericText_63               63L
+#define IDERRcBackscheduleQueueMoveHrsFlag_64     64L
+#define IDERRcDefaultQueueMoveHrsFlag_65          65L
+#define IDERRcPhantOpSeq_66                       66L
+#define IDERRcPOOverrideNoOfEmp_67                67L
+#define IDERRcConfigGenText_68                    68L
+
+#endif
+
+
+/*SAR 5450633 Begin*/
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: Service Order Labor
+ *    Template ID:   T17732
+ *    Generated:     Tue Sep 04 09:02:06 2001
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_T17732
+#define DATASTRUCTURE_T17732
+
+typedef struct tagDST17732
+{
+  JCHAR              cCreatePartsListFlag_EV02;           
+  JCHAR              szTransactionType_TYTN[9];           
+  JCHAR              szP3313Version_VERS[11];             
+  JCHAR              cCopyRoutingText_EV01;               
+  JCHAR              cDefaultQueueMoveHrsFlag_EV01;       
+  JCHAR              szABCWorkbenchVersion_VER[11];       
+  JCHAR              cTimeBasisCode_TIMB;                 
+  JCHAR              cHideBillableFlds_EV01;              
+  JCHAR              cHidePayableFlds_EV01;               
+  JCHAR              cHideContractFlds_EV01;              
+  JCHAR              szP1701Version_VERS[11];             
+  JCHAR              szP3113PVersion_VERS[11];            
+  JCHAR              szEmployeeAddressType_AT1[4];        
+} DST17732, *LPDST17732;
+
+#define IDERRcCreatePartsListFlag_EV02_12         12L
+#define IDERRszTransactionType_TYTN_13            13L
+#define IDERRszP3313Version_VERS_14               14L
+#define IDERRcCopyRoutingText_EV01_15             15L
+#define IDERRcDefaultQueueMoveHrsFlag_EV01_16     16L
+#define IDERRszABCWorkbenchVersion_VER_17         17L
+#define IDERRcTimeBasisCode_TIMB_18               18L
+#define IDERRcHideBillableFlds_EV01_19            19L
+#define IDERRcHidePayableFlds_EV01_20             20L
+#define IDERRcHideContractFlds_EV01_21            21L
+#define IDERRszP1701Version_VERS_22               22L
+#define IDERRszP3113PVersion_VERS_23              23L
+#define IDERRszEmployeeAddressType_AT1_24         24L
+
+#endif
+
+/*SAR 5450633 End*/
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: F3112BeginDoc
+ *    Template ID:   D3101250A
+ *    Generated:     Fri Apr 27 09:53:03 2001
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_D3101250A
+#define DATASTRUCTURE_D3101250A
+
+typedef struct tagDSD3101250A
+{
+  JCHAR              szErrorMessageID[11];                
+  JCHAR              cErrorCode;                          
+  JCHAR              cProcessEdits;                       
+  JCHAR              szProcessModule[5];                  
+  JCHAR              szComputerID[16];                    
+  JCHAR              cLineActionCode;                     
+  JCHAR              szP3112Version[11];                  
+  JCHAR              szProgramId[11];                     
+  JCHAR              cDataDictionaryValidation;           
+  JCHAR              cSuppressErrorMessages;              
+  JCHAR              cCreateCache;                        
+  MATH_NUMERIC      mnF4801OrderNumber;                  
+  JCHAR              szF4801OrderType[3];                 
+  JCHAR              szF4801BranchPlant[13];              
+  MATH_NUMERIC      mnF4801QtyOrdered;                   
+  JDEDATE           jdF4801DateRequested;                
+  JCHAR              szF4801UnitOfMeasure[3];             
+  JCHAR              szPrimaryItemNumber[27];             
+  JCHAR              szItemDescription1[31];              
+  JCHAR              szItemDescription2[31];              
+  JCHAR              cPORoutingTypeFlag;                  
+  JCHAR              cPOCreatePartsListFlag;              
+  MATH_NUMERIC      mnJobNumber;                         
+  MATH_NUMERIC      mnShortItemNumber;                   
+  JCHAR              szP48013Version[11];                 
+  JCHAR              szR31410Version[11];                 
+  JCHAR              cF3009HasPercentOrRates;             
+  JCHAR              cF3009ModcostByWCEfficiency;         
+  JCHAR              cF3009IncludeVarLaborOH;             
+  JCHAR              cF3009CalcVarOnDirectLabor;          
+  JCHAR              cF3009CalcVarOnSetupLabor;           
+  JCHAR              cF3009IncludeWCEffInOH;              
+  JCHAR              cF3009IncFixLaborOrOHinCost;         
+  JCHAR              cF3009CalcFixOnDirectLabor;          
+  JCHAR              cF3009CalcFixOnSetupLabor;           
+  JCHAR              cF3009IncVarMachOHinCost;            
+  JCHAR              cF3009IncFixedMachOHinCost;          
+  JCHAR              cF3009BackflushOptions;              
+  JCHAR              cF3009MasterRoutingYN;               
+  JCHAR              cF3009CommitmentControl;             
+  JCHAR              cF3009HardSoftCommit;                
+  JCHAR              szF4101PrimaryUOM[3];                
+  JCHAR              szF4102TempFlashMsg[3];              
+  JCHAR              cF4102StockNonstock;                 
+  JCHAR              szF4101RevisionLevel[4];             
+  MATH_NUMERIC      mnF4102AcctingCostQty;               
+  JCHAR              cF4102PotencyControl;                
+  JCHAR              cF4102StockingType;                  
+  JCHAR              szF4102PrintMessage[11];             
+  JCHAR              szF4102RevisionLevel[4];             
+  MATH_NUMERIC      mnF4102ShrinkFactor;                 
+  JCHAR              cF4102ShrinkFactorMethod;            
+  MATH_NUMERIC      mnF4102StandardPotency;              
+  JCHAR              szF4101DrawingNumber[21];            
+  JCHAR              szF4101RevisionNumber[3];            
+  JCHAR              cInteractiveBatchFlag;               
+  JDEDATE           jdF4801DateStart;                    
+  MATH_NUMERIC      mnProjectNumber;                     
+} DSD3101250A, *LPDSD3101250A;
+
+#define IDERRszErrorMessageID_1                   1L
+#define IDERRcErrorCode_2                         2L
+#define IDERRcProcessEdits_3                      3L
+#define IDERRszProcessModule_4                    4L
+#define IDERRszComputerID_5                       5L
+#define IDERRcLineActionCode_6                    6L
+#define IDERRszP3112Version_7                     7L
+#define IDERRszProgramId_8                        8L
+#define IDERRcDataDictionaryValidation_9          9L
+#define IDERRcSuppressErrorMessages_10            10L
+#define IDERRcCreateCache_11                      11L
+#define IDERRmnF4801OrderNumber_12                12L
+#define IDERRszF4801OrderType_13                  13L
+#define IDERRszF4801BranchPlant_14                14L
+#define IDERRmnF4801QtyOrdered_15                 15L
+#define IDERRjdF4801DateRequested_16              16L
+#define IDERRszF4801UnitOfMeasure_17              17L
+#define IDERRszPrimaryItemNumber_18               18L
+#define IDERRszItemDescription1_19                19L
+#define IDERRszItemDescription2_20                20L
+#define IDERRcPORoutingTypeFlag_21                21L
+#define IDERRcPOCreatePartsListFlag_22            22L
+#define IDERRmnJobNumber_23                       23L
+#define IDERRmnShortItemNumber_24                 24L
+#define IDERRszP48013Version_25                   25L
+#define IDERRszR31410Version_26                   26L
+#define IDERRcF3009HasPercentOrRates_27           27L
+#define IDERRcF3009ModcostByWCEfficiency_28       28L
+#define IDERRcF3009IncludeVarLaborOH_29           29L
+#define IDERRcF3009CalcVarOnDirectLabor_30        30L
+#define IDERRcF3009CalcVarOnSetupLabor_31         31L
+#define IDERRcF3009IncludeWCEffInOH_32            32L
+#define IDERRcF3009IncFixLaborOrOHinCost_33       33L
+#define IDERRcF3009CalcFixOnDirectLabor_34        34L
+#define IDERRcF3009CalcFixOnSetupLabor_35         35L
+#define IDERRcF3009IncVarMachOHinCost_36          36L
+#define IDERRcF3009IncFixedMachOHinCost_37        37L
+#define IDERRcF3009BackflushOptions_38            38L
+#define IDERRcF3009MasterRoutingYN_39             39L
+#define IDERRcF3009CommitmentControl_40           40L
+#define IDERRcF3009HardSoftCommit_41              41L
+#define IDERRszF4101PrimaryUOM_42                 42L
+#define IDERRszF4102TempFlashMsg_43               43L
+#define IDERRcF4102StockNonstock_44               44L
+#define IDERRszF4101RevisionLevel_45              45L
+#define IDERRmnF4102AcctingCostQty_46             46L
+#define IDERRcF4102PotencyControl_47              47L
+#define IDERRcF4102StockingType_48                48L
+#define IDERRszF4102PrintMessage_49               49L
+#define IDERRszF4102RevisionLevel_50              50L
+#define IDERRmnF4102ShrinkFactor_51               51L
+#define IDERRcF4102ShrinkFactorMethod_52          52L
+#define IDERRmnF4102StandardPotency_53            53L
+#define IDERRszF4101DrawingNumber_54              54L
+#define IDERRszF4101RevisionNumber_55             55L
+#define IDERRcInteractiveBatchFlag_57             57L
+#define IDERRjdF4801DateStart_58                  58L
+#define IDERRmnProjectNumber_59                   59L
+
+#endif
+
+
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: F3112EditLine
+ *    Template ID:   D3101250B
+ *    Generated:     Fri Aug 24 15:12:39 2001
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_D3101250B
+#define DATASTRUCTURE_D3101250B
+
+typedef struct tagDSD3101250B
+{
+  int               nCacheRowNumber;                     
+  JCHAR              szComputerID[16];                    
+  JCHAR              cProcessEdits;                       
+  JCHAR              cProcessModule;                      
+  JCHAR              szProcessModule[5];                  
+  JCHAR              cActionCode;                         
+  JCHAR              cDataDictionaryValidation;           
+  JCHAR              cSuppressErrorMessage;               
+  JCHAR              szErrorMessageID[11];                
+  JCHAR              cErrorCode;                          
+  MATH_NUMERIC      mnOrderNumber;                       
+  MATH_NUMERIC      mnOperationSequence;                 
+  JCHAR              szTypeOfOperation[3];                
+  JCHAR              szWorkCenter[13];                    
+  JCHAR              szOperationStatus[3];                
+  JCHAR              szOperationDescription[31];          
+  MATH_NUMERIC      mnStdRunMachine;                     
+  MATH_NUMERIC      mnStdRunLabor;                       
+  MATH_NUMERIC      mnStdSetupHours;                     
+  MATH_NUMERIC      mnQueueTime;                         
+  MATH_NUMERIC      mnMoveTime;                          
+  MATH_NUMERIC      mnPieceworkRate;                     
+  MATH_NUMERIC      mnCrewSize;                          
+  JDEDATE           jdStartDate;                         
+  JDEDATE           jdRequestedDate;                     
+  MATH_NUMERIC      mnAddressNumber;                     
+  JCHAR              cPayPointCode;                       
+  JCHAR              szEquipmentTag[13];                  
+  JCHAR              szInstructionNumber[11];             
+  JCHAR              szRelatedNumber[9];                  
+  JCHAR              szRelatedType[3];                    
+  MATH_NUMERIC      mnNextOperationSequence;             
+  JCHAR              szConsProd[5];                       
+  JCHAR              szAssignedName[31];                  
+  JCHAR              cTimeBasisCode;                      
+  MATH_NUMERIC      mnPercentOverlap;                    
+  MATH_NUMERIC      mnPercentOpYield;                    
+  MATH_NUMERIC      mnPercentCumYield;                   
+  MATH_NUMERIC      mnQuantityOrdered;                   
+  MATH_NUMERIC      mnQtyCompleted;                      
+  MATH_NUMERIC      mnQtyScrapped;                       
+  MATH_NUMERIC      mnQuantityatOperation;               
+  JCHAR              szUOM[3];                            
+  JCHAR              cPayPointStatus;                     
+  JDEDATE           jdTransactionDate;                   
+  MATH_NUMERIC      mnVendor;                            
+  MATH_NUMERIC      mnParentItemNumber;                  
+  JCHAR              sz2ndItemNumber[26];                 
+  JCHAR              sz3rdItemNumber[26];                 
+  JCHAR              szOrderType[3];                      
+  JCHAR              szOrderSuffix[4];                    
+  JCHAR              szRoutingType[4];                    
+  JCHAR              szBranchPlant[13];                   
+  JCHAR              szLineID[13];                        
+  JCHAR              szAutoLoadDescription[5];            
+  JCHAR              szInspectionCode[3];                 
+  JCHAR              cLaborOrMachine;                     
+  JCHAR              szJobCategory[7];                    
+  MATH_NUMERIC      mnCriticalRatio;                     
+  MATH_NUMERIC      mnSlackTimeRatio;                    
+  JDEDATE           jdCompletionDate;                    
+  JCHAR              cRequestedShiftCode;                 
+  JCHAR              cStartShiftCode;                     
+  JCHAR              cCompletedShiftCode;                 
+  MATH_NUMERIC      mnPercentLeadtime;                   
+  MATH_NUMERIC      mnActualMachineHours;                
+  MATH_NUMERIC      mnActualLaborHours;                  
+  MATH_NUMERIC      mnActualSetupHours;                  
+  MATH_NUMERIC      mnShrinkFactor;                      
+  MATH_NUMERIC      mnHoursUnacctDirectLabor;            
+  MATH_NUMERIC      mnHoursUnacctSetupLabor;             
+  MATH_NUMERIC      mnHoursUnacctMachine;                
+  MATH_NUMERIC      mnAmountUnacctDirectLabor;           
+  MATH_NUMERIC      mnAmountUnacctSetupLabor;            
+  MATH_NUMERIC      mnAmountUnacctMachine;               
+  JCHAR              szProjectCostCenter[13];             
+  JCHAR              szObjectAccount[7];                  
+  JCHAR              szSubsidiary[9];                     
+  JCHAR              szRelatedCompany[6];                 
+  MATH_NUMERIC      mnRelatedLineNumber;                 
+  JCHAR              szDocumentType[3];                   
+  JCHAR              szUserReservedCode[3];               
+  JDEDATE           jdUserReservedDate;                  
+  MATH_NUMERIC      mnUserReservedAmount;                
+  JCHAR              szUserReservedReference[16];         
+  MATH_NUMERIC      mnUserReservedNumber;                
+  MATH_NUMERIC      mnJobNumber;                         
+  JCHAR              cIntermediateFlag;                   
+  MATH_NUMERIC      mnExtendedCost;                      
+  MATH_NUMERIC      mnResourceunitsconsumed;             
+  JCHAR              szUMCapacityUOM[3];                  
+  JCHAR              szLocation[21];                      
+  MATH_NUMERIC      mnRunLaborCurrent;                   
+  MATH_NUMERIC      mnRunMachineCurrent;                 
+  JCHAR              szCostType[4];                       
+  MATH_NUMERIC      mnSetupLaborCurrent;                 
+  JCHAR              szWorkcenterBranch[13];              
+  int               nCSMSCacheRowNumber;                 
+  int               nCSMSLastRowNumberUsed;              
+  MATH_NUMERIC      mnAssetItemNumber;                   
+  JCHAR              szActivityCode[11];                  
+  MATH_NUMERIC      mnRunMachineRate;                    
+  MATH_NUMERIC      mnSetupLaborRate;                    
+  MATH_NUMERIC      mnLaborRate;                         
+  JCHAR              szCompentencyType[4];                
+  JCHAR              szCompentencyCode[11];               
+  MATH_NUMERIC      mnCompetencyLevelFrom;               
+  MATH_NUMERIC      mnCompetencyLevelTo;                 
+  JCHAR              cRuleMatchFlag;                      
+} DSD3101250B, *LPDSD3101250B;
+
+#define IDERRnCacheRowNumber_1                    1L
+#define IDERRszComputerID_2                       2L
+#define IDERRcProcessEdits_3                      3L
+#define IDERRcProcessModule_4                     4L
+#define IDERRszProcessModule_5                    5L
+#define IDERRcActionCode_6                        6L
+#define IDERRcDataDictionaryValidation_7          7L
+#define IDERRcSuppressErrorMessage_8              8L
+#define IDERRszErrorMessageID_9                   9L
+#define IDERRcErrorCode_10                        10L
+#define IDERRmnOrderNumber_11                     11L
+#define IDERRmnOperationSequence_12               12L
+#define IDERRszTypeOfOperation_13                 13L
+#define IDERRszWorkCenter_14                      14L
+#define IDERRszOperationStatus_15                 15L
+#define IDERRszOperationDescription_16            16L
+#define IDERRmnStdRunMachine_17                   17L
+#define IDERRmnStdRunLabor_18                     18L
+#define IDERRmnStdSetupHours_19                   19L
+#define IDERRmnQueueTime_20                       20L
+#define IDERRmnMoveTime_21                        21L
+#define IDERRmnPieceworkRate_22                   22L
+#define IDERRmnCrewSize_23                        23L
+#define IDERRjdStartDate_24                       24L
+#define IDERRjdRequestedDate_25                   25L
+#define IDERRmnAddressNumber_26                   26L
+#define IDERRcPayPointCode_27                     27L
+#define IDERRszEquipmentTag_28                    28L
+#define IDERRszInstructionNumber_29               29L
+#define IDERRszRelatedNumber_30                   30L
+#define IDERRszRelatedType_31                     31L
+#define IDERRmnNextOperationSequence_32           32L
+#define IDERRszConsProd_33                        33L
+#define IDERRszAssignedName_34                    34L
+#define IDERRcTimeBasisCode_35                    35L
+#define IDERRmnPercentOverlap_36                  36L
+#define IDERRmnPercentOpYield_37                  37L
+#define IDERRmnPercentCumYield_38                 38L
+#define IDERRmnQuantityOrdered_39                 39L
+#define IDERRmnQtyCompleted_40                    40L
+#define IDERRmnQtyScrapped_41                     41L
+#define IDERRmnQuantityatOperation_42             42L
+#define IDERRszUOM_43                             43L
+#define IDERRcPayPointStatus_44                   44L
+#define IDERRjdTransactionDate_45                 45L
+#define IDERRmnVendor_46                          46L
+#define IDERRmnParentItemNumber_47                47L
+#define IDERRsz2ndItemNumber_48                   48L
+#define IDERRsz3rdItemNumber_49                   49L
+#define IDERRszOrderType_50                       50L
+#define IDERRszOrderSuffix_51                     51L
+#define IDERRszRoutingType_52                     52L
+#define IDERRszBranchPlant_53                     53L
+#define IDERRszLineID_54                          54L
+#define IDERRszAutoLoadDescription_55             55L
+#define IDERRszInspectionCode_56                  56L
+#define IDERRcLaborOrMachine_57                   57L
+#define IDERRszJobCategory_58                     58L
+#define IDERRmnCriticalRatio_59                   59L
+#define IDERRmnSlackTimeRatio_60                  60L
+#define IDERRjdCompletionDate_61                  61L
+#define IDERRcRequestedShiftCode_64               64L
+#define IDERRcStartShiftCode_65                   65L
+#define IDERRcCompletedShiftCode_66               66L
+#define IDERRmnPercentLeadtime_67                 67L
+#define IDERRmnActualMachineHours_68              68L
+#define IDERRmnActualLaborHours_69                69L
+#define IDERRmnActualSetupHours_70                70L
+#define IDERRmnShrinkFactor_71                    71L
+#define IDERRmnHoursUnacctDirectLabor_72          72L
+#define IDERRmnHoursUnacctSetupLabor_73           73L
+#define IDERRmnHoursUnacctMachine_74              74L
+#define IDERRmnAmountUnacctDirectLabor_75         75L
+#define IDERRmnAmountUnacctSetupLabor_76          76L
+#define IDERRmnAmountUnacctMachine_77             77L
+#define IDERRszProjectCostCenter_78               78L
+#define IDERRszObjectAccount_79                   79L
+#define IDERRszSubsidiary_80                      80L
+#define IDERRszRelatedCompany_81                  81L
+#define IDERRmnRelatedLineNumber_82               82L
+#define IDERRszDocumentType_83                    83L
+#define IDERRszUserReservedCode_84                84L
+#define IDERRjdUserReservedDate_85                85L
+#define IDERRmnUserReservedAmount_86              86L
+#define IDERRszUserReservedReference_87           87L
+#define IDERRmnUserReservedNumber_88              88L
+#define IDERRmnJobNumber_89                       89L
+#define IDERRcIntermediateFlag_90                 90L
+#define IDERRmnExtendedCost_91                    91L
+#define IDERRmnResourceunitsconsumed_92           92L
+#define IDERRszUMCapacityUOM_93                   93L
+#define IDERRszLocation_94                        94L
+#define IDERRmnRunLaborCurrent_95                 95L
+#define IDERRmnRunMachineCurrent_96               96L
+#define IDERRszCostType_97                        97L
+#define IDERRmnSetupLaborCurrent_98               98L
+#define IDERRszWorkcenterBranch_100               100L
+#define IDERRnCSMSCacheRowNumber_123              123L
+#define IDERRnCSMSLastRowNumberUsed_124           124L
+#define IDERRmnAssetItemNumber_125                125L
+#define IDERRszActivityCode_126                   126L
+#define IDERRmnRunMachineRate_127                 127L
+#define IDERRmnSetupLaborRate_129                 129L
+#define IDERRmnLaborRate_130                      130L
+#define IDERRszCompentencyType_131                131L
+#define IDERRszCompentencyCode_132                132L
+#define IDERRmnCompetencyLevelFrom_133            133L
+#define IDERRmnCompetencyLevelTo_134              134L
+#define IDERRcRuleMatchFlag_135                   135L
+
+#endif
+
+
+
+
+
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: F3112EditDoc
+ *    Template ID:   D3101250C
+ *    Generated:     Mon May 24 12:08:08 1999
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the Everest Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_D3101250C
+#define DATASTRUCTURE_D3101250C
+
+typedef struct tagDSD3101250C
+{
+  JCHAR              szComputerID[16];                    
+  JCHAR              szErrorMessageID[11];                
+  JCHAR              cProcessEdits;                       
+  JCHAR              szProcessModule[5];                  
+  JCHAR              cInteractiveBatchFlag;               
+  JCHAR              cErrorCode;                          
+  MATH_NUMERIC      mnOrderNumber;                       
+  MATH_NUMERIC      mnShortItemNumber;                   
+  JCHAR              szBranchPlant[13];                   
+  int               nCacheCounter;                       
+  JCHAR              cF4801FlashMessage;                  
+  MATH_NUMERIC      mnEstimatedAmount;                   
+  MATH_NUMERIC      mnEstimatedHours;                    
+  MATH_NUMERIC      mnJobNumber;                         
+  JCHAR              szBackschedulingUOM[3];              
+  JCHAR              cCRPWriteWOFlag;                     
+  JCHAR              cSuppressErrorMessages;              
+} DSD3101250C, *LPDSD3101250C;
+
+#define IDERRszComputerID_1                       1L
+#define IDERRszErrorMessageID_2                   2L
+#define IDERRcProcessEdits_3                      3L
+#define IDERRszProcessModule_4                    4L
+#define IDERRcInteractiveBatchFlag_5              5L
+#define IDERRcErrorCode_6                         6L
+#define IDERRmnOrderNumber_7                      7L
+#define IDERRmnShortItemNumber_8                  8L
+#define IDERRszBranchPlant_9                      9L
+#define IDERRnCacheCounter_10                     10L
+#define IDERRcF4801FlashMessage_11                11L
+#define IDERRmnEstimatedAmount_12                 12L
+#define IDERRmnEstimatedHours_13                  13L
+#define IDERRmnJobNumber_14                       14L
+#define IDERRszBackschedulingUOM_16               16L
+#define IDERRcCRPWriteWOFlag_17                   17L
+#define IDERRcSuppressErrorMessages_18            18L
+
+#endif
+
+
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: F3112EndDoc
+ *    Template ID:   D3101250D
+ *    Generated:     Tue Oct 23 16:34:37 2001
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_D3101250D
+#define DATASTRUCTURE_D3101250D
+
+typedef struct tagDSD3101250D
+{
+  JCHAR              cProcessEdits;                       
+  JCHAR              szErrorMessageID[11];                
+  JCHAR              cErrorCode;                          
+  JCHAR              szProgramId[11];                     
+  JCHAR              szComputerID[16];                    
+  JCHAR              cCacheEdits;                         
+  MATH_NUMERIC      mnJobNumber;                         
+  JCHAR              szProcessModule[5];                  
+  JCHAR              cUpdateX4801Cache;                   
+  MATH_NUMERIC      mnX4801WorkFileLineNo;               
+} DSD3101250D, *LPDSD3101250D;
+
+#define IDERRcProcessEdits_1                      1L
+#define IDERRszErrorMessageID_2                   2L
+#define IDERRcErrorCode_3                         3L
+#define IDERRszProgramId_5                        5L
+#define IDERRszComputerID_6                       6L
+#define IDERRcCacheEdits_7                        7L
+#define IDERRmnJobNumber_8                        8L
+#define IDERRszProcessModule_9                    9L
+#define IDERRcUpdateX4801Cache_10                 10L
+#define IDERRmnX4801WorkFileLineNo_11             11L
+
+#endif
+
+/*****************************************
+ * TYPEDEF for Data Structure
+ *    Template Name: F3112RetrieveCacheRow
+ *    Template ID:   D3101250E
+ *    Generated:     Wed Oct 31 14:20:22 2001
+ *
+ * DO NOT EDIT THE FOLLOWING TYPEDEF
+ *    To make modifications, use the OneWorld Data Structure
+ *    Tool to Generate a revised version, and paste from
+ *    the clipboard.
+ *
+ **************************************/
+
+#ifndef DATASTRUCTURE_D3101250E
+#define DATASTRUCTURE_D3101250E
+
+typedef struct tagDSD3101250E
+{
+  JCHAR              cProcessEdits;                       
+  JCHAR              szErrorMessageID[11];                
+  JCHAR              cErrorCode;                          
+  JCHAR              szProgramId[11];                     
+  JCHAR              szComputerID[16];                    
+  int               nCacheRowNumber;                     
+  MATH_NUMERIC      mnOperationSequence;                 
+  JCHAR              szCostCenter[13];                    
+  JCHAR              szDescription[31];                   
+  JCHAR              cTimeBasisCode;                      
+  JCHAR              cPayPointCode;                       
+  MATH_NUMERIC      mnPercentOverlap;                    
+  MATH_NUMERIC      mnPercentOpYield;                    
+  MATH_NUMERIC      mnPercentCumYield;                   
+  MATH_NUMERIC      mnNextOperation;                     
+  MATH_NUMERIC      mnCrewSize;                          
+  MATH_NUMERIC      mnMoveTime;                          
+  MATH_NUMERIC      mnQueueTime;                         
+  MATH_NUMERIC      mnStdMachineRunTime;                 
+  MATH_NUMERIC      mnStdLaborRunTime;                   
+  MATH_NUMERIC      mnStdLaborSetupTime;                 
+  JCHAR              szUnitNumber[13];                    
+  JCHAR              szOperationStatus[3];                
+  MATH_NUMERIC      mnPieceworkRate;                     
+  JDEDATE           jdStartDate;                         
+  JDEDATE           jdRequestedDate;                     
+  MATH_NUMERIC      mnAssignedTo;                        
+  JCHAR              szAssignedName[31];                  
+  JCHAR              szTypeOperationCode[3];              
+  JCHAR              szConsProd[5];                       
+  MATH_NUMERIC      mnJobNumber;                         
+  JCHAR              szProcessModule[5];                  
+  MATH_NUMERIC      mnResourceunitsconsumed;             
+  JCHAR              szUMCapacityUOM[3];                  
+  JCHAR              szLocation[21];                      
+  JCHAR              szLineIdentifier[13];                
+  JCHAR              szCostType[4];                       
+  MATH_NUMERIC      mnAssetItemNumber;                   
+  JCHAR              szWorkcenterBranch[13];              
+  JCHAR              szActivityCode[11];                  
+  JCHAR              szCompentencyType[4];                
+  JCHAR              szCompentencyCode[11];               
+  MATH_NUMERIC      mnCompetencyLevelFrom;               
+  MATH_NUMERIC      mnCompetencyLevelTo;                 
+  JCHAR              cRuleMatchFlag;                      
+  JCHAR              szJobCategory[7];                    
+} DSD3101250E, *LPDSD3101250E;
+
+#define IDERRcProcessEdits_1                      1L
+#define IDERRszErrorMessageID_2                   2L
+#define IDERRcErrorCode_3                         3L
+#define IDERRszProgramId_5                        5L
+#define IDERRszComputerID_6                       6L
+#define IDERRnCacheRowNumber_7                    7L
+#define IDERRmnOperationSequence_8                8L
+#define IDERRszCostCenter_9                       9L
+#define IDERRszDescription_10                     10L
+#define IDERRcTimeBasisCode_11                    11L
+#define IDERRcPayPointCode_12                     12L
+#define IDERRmnPercentOverlap_13                  13L
+#define IDERRmnPercentOpYield_14                  14L
+#define IDERRmnPercentCumYield_15                 15L
+#define IDERRmnNextOperation_16                   16L
+#define IDERRmnCrewSize_17                        17L
+#define IDERRmnMoveTime_18                        18L
+#define IDERRmnQueueTime_19                       19L
+#define IDERRmnStdMachineRunTime_20               20L
+#define IDERRmnStdLaborRunTime_21                 21L
+#define IDERRmnStdLaborSetupTime_22               22L
+#define IDERRszUnitNumber_23                      23L
+#define IDERRszOperationStatus_24                 24L
+#define IDERRmnPieceworkRate_25                   25L
+#define IDERRjdStartDate_26                       26L
+#define IDERRjdRequestedDate_27                   27L
+#define IDERRmnAssignedTo_28                      28L
+#define IDERRszAssignedName_29                    29L
+#define IDERRszTypeOperationCode_30               30L
+#define IDERRszConsProd_31                        31L
+#define IDERRmnJobNumber_32                       32L
+#define IDERRszProcessModule_33                   33L
+#define IDERRmnResourceunitsconsumed_34           34L
+#define IDERRszUMCapacityUOM_35                   35L
+#define IDERRszLocation_36                        36L
+#define IDERRszLineIdentifier_37                  37L
+#define IDERRszCostType_38                        38L
+#define IDERRmnAssetItemNumber_39                 39L
+#define IDERRszWorkcenterBranch_40                40L
+#define IDERRszActivityCode_41                    41L
+#define IDERRszCompentencyType_42                 42L
+#define IDERRszCompentencyCode_43                 43L
+#define IDERRmnCompetencyLevelFrom_44             44L
+#define IDERRmnCompetencyLevelTo_45               45L
+#define IDERRcRuleMatchFlag_46                    46L
+#define IDERRszJobCategory_47                     47L
+
+#endif
+
+
+/*****************************************************************************
+ * Source Preprocessor Definitions
+ ****************************************************************************/
+#if defined (JDEBFRTN)
+	#undef JDEBFRTN
+#endif
+
+#if defined (WIN32)
+	#if defined (WIN32)
+		#define JDEBFRTN(r) __declspec(dllexport) r
+	#else
+		#define JDEBFRTN(r) __declspec(dllimport) r
+	#endif
+#else
+	#define JDEBFRTN(r) r
+#endif
+
+/*****************************************************************************
+ * Business Function Prototypes
+ ****************************************************************************/
+JDEBFRTN (ID) JDEBFWINAPI F3112WorkOrderRoutingsBeginDoc (LPBHVRCOM lpBhvrCom, 
+                                                          LPVOID lpVoid, 
+                                                          LPDSD3101250A lpDS);
+JDEBFRTN (ID) JDEBFWINAPI F3112WorkOrderRoutingsEditLine (LPBHVRCOM lpBhvrCom,
+                                                          LPVOID lpVoid,
+                                                          LPDSD3101250B lpDS);
+JDEBFRTN (ID) JDEBFWINAPI F3112WorkOrderRoutingsCacheRow (LPBHVRCOM lpBhvrCom,
+                                                          LPVOID lpVoid,
+                                                          LPDSD3101250E lpDS);
+JDEBFRTN (ID) JDEBFWINAPI F3112WorkOrderRoutingsEditDoc (LPBHVRCOM lpBhvrCom,
+                                                         LPVOID lpVoid,
+                                                         LPDSD3101250C lpDS);
+JDEBFRTN (ID) JDEBFWINAPI F3112WorkOrderRoutingsEndDoc (LPBHVRCOM lpBhvrCom,
+                                                        LPVOID lpVoid,
+                                                        LPDSD3101250D lpDS);
+
+
+
+/*****************************************************************************
+ * Internal Function Prototypes
+ ****************************************************************************/
+#include <b3102380.h>
+
+/* System Functions */
+static ID I3101250_GetHuser(LPDSB3101250INTERNAL lpdsInternal);
+
+/* Structure Initialization Functions */
+static void I3101250_GetAuditInformation (LPDSD3101250A lpDS,
+                                          LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_BeginDocInitStructures(LPDSD3101250A lpDS,
+                                            LPDSB3101250INTERNAL lpdsInternal,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_EditLineInitStructures(LPDSD3101250B lpDS,
+                                            LPDSB3101250INTERNAL lpdsInternal,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_EditDocInitStructures(LPDSD3101250C lpDS,
+                                           LPDSB3101250INTERNAL lpdsInternal,
+                                           LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_CacheRowInitStructures(LPDSD3101250E lpDS,
+                                            LPDSB3101250INTERNAL lpdsInternal,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_EndDocInitStructures(LPDSD3101250D lpDS,
+                                          LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache);
+
+/* Validation and Data Retrieval Functions */
+static ID   I3101250_GetVersion(LPDSB3101250INTERNAL lpdsInternal,
+                                LPDSD3101250A lpDS,
+                                LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetWorkOrderInfo(LPDSB3101250INTERNAL lpdsInternal,
+                                    LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetUDC(JCHAR szDataDictionaryItem[5], 
+                          JCHAR cSuppressErrorMessage,
+                          JCHAR cUDCOne, 
+                          LPDSB3101250INTERNAL lpdsInternal, 
+                          LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID I3101250_GetManufacturingConstants(LPDSB3101250INTERNAL lpdsInternal,
+                                             LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetDefaults(LPDSB3101250INTERNAL lpdsInternal,
+                               LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetItemMasterInformation(LPDSB3101250INTERNAL lpdsInternal,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetJobNumber(LPDSB3101250INTERNAL lpdsInternal);
+static ID I3101250_GetWorkCenterDefaults(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250CACHE lpdsCache,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_ValidateRoutingDoesNotExist(LPDSB3101250INTERNAL lpdsInternal,
+                                               LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetItemBranchGradePotency(LPDSB3101250INTERNAL lpdsInternal,
+                                             LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetUOMConversion(LPDSD3101250C lpDS,
+                                    LPDSB3101250INTERNAL lpdsInternal,
+                                    LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_ConvertOrderQuantity(LPDSD3101250C lpDS,
+                                        LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache,
+													 MATH_NUMERIC mnQtyToConvert,
+													 LPMATH_NUMERIC lpmnConvertedQty,
+													 JCHAR* szUoMFrom, JCHAR* szUoMTo);
+static ID I3101250_GetMasterRoutingItemNumber(LPDSB3101250INTERNAL lpdsInternal,
+                                              LPDSB3101250CACHE lpdsCache,
+                                              LPDSB3101250WORKCACHE lpdsWorkCache,
+                                              LPDSD3101250C lpDS);
+static ID I3101250_VerifyF3003Routing(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250CACHE lpdsCache,
+                                      LPDSB3101250WORKCACHE lpdsWorkCache,
+                                      LPDSD3101250C lpDS,
+                                      JCHAR cEnd);
+static ID I3101250_GetType(LPDSB3101250INTERNAL lpdsInternal,
+                           LPDSB3101250CACHE lpdsCache,
+                           LPDSB3101250WORKCACHE lpdsWorkCache,
+                           LPDSD3101250B lpDS);
+static ID I3101250_ValidateWorkCenter(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250CACHE lpdsCache);
+static ID I3101250_ValidateUniqueRecord(LPDSD3101250B lpDS,
+                                        LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250CACHE lpdsCache,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_ValidateRelatedOrder(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250CACHE lpdsCache,
+                                        LPDSD3101250B lpDS,
+                                        LPDSB3101250CACHE lpdsOrigCache,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_ValidateStartDate(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSD3101250B lpDS);
+static void I3101250_GetLaborRate(LPDSB3101250INTERNAL lpdsInternal,
+                                  LPDSB3101250CACHE lpdsCache,
+                                  LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetF3112Record(LPDSB3101250INTERNAL lpdsInternal,
+                                  LPDSD3101250B lpDS,
+                                  LPDSB3101250CACHE lpdsCache,
+                                  LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_DoesF3111RecordExist(LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250CACHE lpdsCache,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_SelectF3003Records(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250WORKCACHE lpdsWorkCache,
+                                      LPDSD3101250C lpDS,
+                                      JCHAR cIncludeOpSeqFlag);
+static ID I3101250_GetF3003Record(LPDSB3101250INTERNAL lpdsInternal,
+                                  LPDSB3101250WORKCACHE lpdsWorkCache,
+                                  LPF3003 lpdsF3003,
+                                  LPMATH_NUMERIC lpmnNextCumYieldPct);
+
+/* Calculation Functions */
+/*static void I3101250_CalculateNewQuantity(LPDSB3101250EDITCACHE lpdsEditCache);*/
+static MATH_NUMERIC I3101250_CalculateShrinkage(LPDSB3101250INTERNAL lpdsInternal,
+                                                LPDSB3101250WORKCACHE lpdsWorkCache, 
+                                                LPDSD3101250C lpDS,
+                                                MATH_NUMERIC  mnRequestedQuantity);
+static void I3101250_CalculateHoursCosts(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache,
+                                         LPDSB3101250CACHE lpdsCache);
+static ID I3101250_CumulativeYieldPercent(LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache,
+                                          LPDSB3101250CACHE lpdsCache,
+                                          LPDSD3101250C lpDS);
+static void I3101250_RecalculateLaborRunHours(LPDSB3101250CACHE lpdsCache,
+                                              LPDSB3101250CACHE lpdsOrigCache);
+static void I3101250_AccumF4801EstHoursAmount(LPDSD3101250B lpDS, 
+                                              LPDSB3101250CACHE lpdsCache,
+                                              LPDSB3101250WORKCACHE lpdsWorkCache, 
+                                              LPDSB3101250CACHE lpdsOrigCache);
+ 
+
+/* Purchase Order Functions 
+static ID I3101250_UpdatePO(LPDSB3101250INTERNAL lpdsInternal,
+                            LPDSB3101250CACHE lpdsCache,
+                            LPDSB3101250WORKCACHE lpdsWorkCache,
+                            JCHAR cEndDoc);
+
+
+static JCHAR I3101250_GetOutsideOPItem(LPDSB3101250INTERNAL Internal,
+                                      DSDF4311Z1B dsXT4311Z1B,
+                                      LPID lpidPtrToF4101);*/
+
+static ID I3101250_WorkWithPurchaseOrders( LPDSB3101250INTERNAL lpdsInternal,
+                                           LPDSB3101250CACHE lpdsFetchCache,
+                                           LPDSB3101250WORKCACHE lpdsWorkCache,
+                                           JCHAR cEndDoc,
+                                           JCHAR cActionType);
+
+static ID I3101250_CancelPurchaseOrder(LPDSB3101250INTERNAL lpdsInternal,
+                                       LPDSB3101250WORKCACHE lpdsWorkCache,
+                                       LPDSB3101250CACHE lpdsCache);
+/* Internal Driver Functions */
+static ID I3101250_WriteCacheToF3112(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250CACHE lpdsCache,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_DetermineBatchRouting(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250CACHE lpdsCache,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache,
+                                         LPDSD3101250C lpDS);
+static ID I3101250_WriteRecordsToF33UI001(LPDSD3101250C lpDS,
+                                          LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250CACHE lpdsCache,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CopyRoutingFromWO(LPDSD3101250C lpDS,
+                                     LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250CACHE lpdsCache,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_SetBackScheduleFlag(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250CACHE lpdsCache,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_Backschedule(LPDSD3101250C lpDS,
+                                LPDSB3101250CACHE lpdsCache,
+                                LPDSB3101250INTERNAL lpdsInternal,                                        
+                                LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_ScheduleOperationDates(LPDSB3101250CACHE lpdsCache,
+                                          LPDSB3101250INTERNAL lpdsInternal,                                        
+                                          LPDSB3101250WORKCACHE lpdsWorkCache,
+                                          LPDSB3101250BACKSCHEDULE lpdsBackschedule,
+                                          int nF3009NumberOfOperations);                                           
+static void I3101250_CreateParentItemCostVariances(LPDSB3101250INTERNAL lpdsInternal,
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_CreateOutsideOpCostVariances(LPDSB3101250INTERNAL lpdsInternal,
+                                                  LPDSB3101250WORKCACHE lpdsWorkCache,
+                                                  LPDSB3101250CACHE lpdsCache);
+static ID I3101250_UpdateCostsInF3102(LPDSB3101250INTERNAL lpdsInternal,
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_DeleteRoutingCostsInF3102(LPDSB3101250INTERNAL lpdsInternal,
+                                             LPDSB3101250WORKCACHE lpdsWorkCache);
+
+/* F3112 and Work Cache Functions */
+static ID I3101250_OpenCache(LPDSB3101250INTERNAL lpdsInternal);
+static void I3101250_TerminateInitCache(LPDSB3101250INTERNAL lpdsInternal);
+static void I3101250_CloseCursor(LPDSB3101250INTERNAL lpdsInternal, 
+                                 int nWhichCursor,
+                                 int nWhichCache);
+static ID I3101250_OpenCursor(LPDSB3101250INTERNAL lpdsInternal, 
+                              int nWhichCursor,
+                              int nWhichCache);
+static ID I3101250_OpenF3112(LPDSB3101250INTERNAL lpdsInternal,
+                             LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_TerminateAllCaches(LPDSB3101250INTERNAL lpdsInternal);
+
+/* F3112 Cache Functions */
+static ID I3101250_FetchF3112(LPDSB3101250CACHE lpdsCache,                              
+                              LPDSB3101250INTERNAL lpdsInternal,
+                              LPDSB3101250WORKCACHE lpdsWorkCache,
+                              LPDSD3101430 lpdsOutsource);
+static ID I3101250_ClearF3112Cache(LPDSB3101250INTERNAL lpdsInternal);
+static ID I3101250_UpdateF3112CacheRecord(LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250CACHE lpdsCache,
+                                          int nWhichCursor);
+static ID I3101250_GetF3112CacheRecord(LPDSB3101250INTERNAL lpdsInternal,                                       
+                                       LPDSB3101250CACHE lpdsCache,
+                                       LPDSB3101250CACHE lpdsOrigCache);
+static ID I3101250_AddRecordToF3112Cache(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250CACHE lpdsCache,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_GetCacheRecord(LPDSB3101250INTERNAL lpdsInternal,
+                                  LPDSB3101250CACHE lpdsCache);
+static void I3101250_CheckF3112CacheToAddOrUpdate(LPDSB3101250INTERNAL lpdsInternal,
+                                                  LPDSB3101250CACHE lpdsCache,
+                                                  LPDSB3101250WORKCACHE lpdsWorkCache);
+
+/* Work Cache Functions */
+static ID I3101250_GetWorkCacheRecord(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_InitializeWorkCacheRecord(LPDSD3101250C lpDS,
+                                               LPDSB3101250INTERNAL lpdsInternal,
+                                               LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_UpdateWorkCacheRecord(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_ClearWorkCacheRecord(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_AddRecordToWorkCache(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_UpdateF4801FlashMessage(LPDSB3101250WORKCACHE lpdsWorkCache,
+                                             LPDSB3101250INTERNAL lpdsInternal);
+static void I3101250_InitializeParentItemCostFields(LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID I3101250_CopyF3003RoutingToCache(LPDSB3101250INTERNAL lpdsInternal,
+                                           LPDSB3101250CACHE lpdsCache,
+                                           LPDSB3101250WORKCACHE lpdsWorkCache,
+                                           LPDSD3101250C lpDS);
+static ID I3101250_EditRecordToCache(LPDSD3101250C lpDS,
+                                     LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250CACHE lpdsCache,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+
+/* Load Functions */
+static void I3101250_LoadOutput(LPDSD3101250A lpDS,
+                                LPDSB3101250INTERNAL lpdsInternal,
+                                LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_LoadQtyAtOperation(LPDSB3101250CACHE lpdsCache,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache,
+                                        LPDSB3101250INTERNAL lpdsInternal);
+
+static void I3101250_LoadCacheToF3112(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250CACHE lpdsCache);
+static ID I3101250_UpdateCacheToF3112(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250CACHE lpdsCache,                              
+                                      ID idJDBReturn,
+                                      LPDSB3101250WORKCACHE lpdsWorkCache,
+                                      LPDSD3101430 lpdsOutsource);
+static ID I3101250_UpdatePOHoldCodes(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache,
+                                     LPDSB3101250CACHE lpdsCache);
+static ID I3101250_LoadCacheForBackschedule(LPDSD3101250C lpDS,
+                                            LPDSB3101250CACHE lpdsCache,
+                                            LPDSB3101250INTERNAL lpdsInternal,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache);
+//static void I3101250_LoadF33UI001(LPDSB3101250INTERNAL lpdsInternal,*/Modificado:	Luis Capriles,		Fecha:	10/12/2009 - Conversion a UniCode
+
+//                                  LPDSB3101250CACHE lpdsCache,
+//                                  LPF33UI001 lpdsF33UI001,
+//                                  LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_LoadF3112Cache(LPDSD3101250B lpDS,
+                                    LPDSB3101250CACHE lpdsCache,
+                                    LPDSB3101250WORKCACHE lpdsWorkCache,
+                                    LPDSB3101250INTERNAL lpdsInternal);
+static void I3101250_LoadCache(LPF3112 lpdsF3112,
+                               LPDSB3101250CACHE lpdsCache,
+                               LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_LoadQuantity(LPDSB3101250CACHE lpdsCache,
+                                  LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_LoadEditLineOutput(LPDSB3101250CACHE lpdsCache,
+                                        LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSD3101250B lpDS);
+static void I3101250_LoadCopyOutput(LPDSD3101250E lpDS,
+                                    LPDSB3101250CACHE lpdsCache,
+                                    LPDSB3101250INTERNAL lpdsInternal);
+static void I3101250_LoadF3112Record(LPF3112 lpdsF3112,
+                                     LPDSB3101250CACHE lpdsCache,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_LoadF3003Record(LPF3003 lpdsF3003,
+                                     LPDSB3101250CACHE lpdsCache,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache,
+                                     LPDSB3101250INTERNAL lpdsInternal);
+static ID I3101250_CopyByOrderNumber(LPDSD3101250C lpDS,
+                                     LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250CACHE lpdsCache,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_AdjustWorkOrder(LPDSD3101250A lpDS,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_AdjustEPMWorkOrder(LPDSD3101250A lpDS,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache,
+                                        LPDSB3101250INTERNAL lpdsInternal);
+
+/* X4801 Functions */
+static ID I3101250_UpdateF4801Record(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache, 
+                                     LPDSD3101250D lpDS);
+static ID I3101250_CallX4801BeginDoc(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CallX4801EditLine(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSDX4801E lpdsX4801EditLine);
+static void I3101250_LoadX4801EditFields(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache,
+                                         LPDSDX4801E lpdsX4801EditLine);
+static ID I3101250_CallX4801EndDoc(LPDSB3101250INTERNAL lpdsInternal,
+                                   LPDSDX4801C lpdsX4801EndDoc,
+                                   LPDSDX4801E lpdsX4801EditLine,
+                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+
+/* B3101260 - F3111 Functions */
+static ID I3101250_UpdateF3111Record(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CallF3111BeginDoc(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CallF3111EditDoc(LPDSB3101250INTERNAL lpdsInternal,
+                                    LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CallF3111EndDoc(LPDSB3101250INTERNAL lpdsInternal);
+
+/* Miscellaneous Functions */
+static void I3101250_CallOutsourceModule(LPDSB3101250INTERNAL lpdsInternal,
+                                         LPDSB3101250WORKCACHE lpdsWorkCache,
+                                         LPF3112 lpdsOriginalF3112,
+                                         LPDSD3101430 lpdsOutsource,
+                                         JCHAR cActionCode,
+                                         JCHAR cFetch);
+static BOOL I3101250_VerifyTimeTransRecords(LPDSB3101250WORKCACHE lpdsWorkCache,
+                                            LPKEY7_F31122 lpdsF31122Key7);
+static ID I3101250_OpenF31122(LPDSB3101250INTERNAL lpdsInternal,
+                              LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CanRoutingBeDeleted(LPDSB3101250INTERNAL lpdsInternal,                                      
+                                       LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_DeleteRouting(LPDSB3101250INTERNAL lpdsInternal,                                      
+                                 LPDSB3101250WORKCACHE lpdsWorkCache);
+void  I3101250_LoadCacheRoutingCFG (LPDSD3101250C lpDS, LPDSD3200390 lpdsB3200390,
+                                    LPDSB3101250INTERNAL lpdsInternal,
+                                    LPDSB3101250WORKCACHE lpdsWorkCache);
+void  I3101250_LoadConfiguratorInfo (LPDSD3101250C lpDS, LPDSD3200390 lpdsB3200390,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_UpdateWOStdCostVarianceForCFG(LPDSB3101250INTERNAL lpdsInternal,
+                                                 LPDSB3101250WORKCACHE lpdsWorkCache);
+static ID I3101250_CalculateResourceUnitsConsumed(LPDSB3101250CACHE lpdsCache,
+                                                  LPDSB3101250WORKCACHE lpdsWorkCache,
+                                                  LPDSB3101250INTERNAL lpdsInternal);
+static void I3101250_ProcessGenericText(LPDSB3101250CACHE lpdsCache,LPDSB3101250INTERNAL lpdsInternal,
+                             JCHAR ModeFlag,
+							        LPDSB3101250WORKCACHE lpdsWorkCache);
+
+/*CSMS Functions */
+/*
+ *  The following statement exists here to resolve a circle reference.
+ *  In the event it is placed above the declaration of the edit line
+ *  data structure B3101250 and B3102690 will no longer compile.
+ */
+#include <b1702750.h>   /* DSD1702750 - Advance Pricing Routing MBF */
+
+static void I3101250_AdvancePricingEditLine(LPDSB3101250INTERNAL lpdsInternal,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache,
+                                            LPDSB3101250CACHE lpdsCache,
+                                            LPDSD3101250B lpDS);
+static void I3101250_AdvancePricingEditDoc(LPDSB3101250INTERNAL lpdsInternal,
+                                           LPDSB3101250WORKCACHE lpdsWorkCache,
+                                           LPDSB3101250CACHE lpdsCache,
+                                           LPDSD3101250C lpDS);
+static void I3101250_AdvancePricingUpdate(LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache,
+                                          LPDSB3101250CACHE lpdsCache);                                        
+
+static void I3101250GetDefaultDDValue(LPDSB3101250INTERNAL lpdsInternal,
+                                      JCHAR szDataDictionaryItem[11] ,
+                                      LPDSB3101250CACHE lpdsCache);
+static int I3101250_CalculateDowntimeHours(LPDSB3101250WORKCACHE lpdsWorkCache,
+                                           LPDSB3101250INTERNAL lpdsInternal, 
+                                           LPDSB3101250CACHE lpdsCache);
+static ID I3101250_GetParentItemDetails(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache, 
+                                        LPDSD3101250C lpDS);
+
+static ID I3101250_ValidateActivityCode(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250CACHE lpdsCache);
+static void I3101250_WriteF3102PlannedUnitsCosts(LPDSB3101250INTERNAL lpdsInternal,
+                                                 LPDSB3101250WORKCACHE lpdsWorkCache,
+                                                 LPDSB3101250CACHE lpdsCache);
+static void I3101250_RollupPlannedCosts(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_GetProjectAttributes(LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache);
+/* MPM - Net Change */
+static void I3101250_RecalculateHoursAndQuantities(LPDSD3101250C lpDS,
+                                                   LPDSB3101250CACHE lpdsCache,
+                                                   LPDSB3101250INTERNAL lpdsInternal,                                        
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+static void I3101250_RollupPlannedCosts(LPDSB3101250INTERNAL lpdsInternal,
+                                        LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static void    I3101250_F48311UpdateRoutingKeys(LPDSB3101250INTERNAL lpdsInternal,
+																LPDSB3101250CACHE lpdsCache);
+
+static void    I3101250_F48311UpdateAssignments(LPDSB3101250INTERNAL lpdsInternal,
+																LPF3112 lpdsOriginalF3112,
+																LPDSB3101250CACHE lpdsCache);
+
+static void    I3101250_F48311DeleteAssignments(LPDSB3101250INTERNAL lpdsInternal);
+
+static ID I3101250_ProcessX4801Cache(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache,                                    
+                                     LPDSD31P0050 lpdsB31P0050, 
+                                     JCHAR cMode);
+
+static void IB3101250_GetMessageCodes(LPDSB3101250INTERNAL lpdsInternal,
+                                      LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID I3101250_EditLinePartialEdits(LPDSD3101250B lpDS,
+                                        LPDSB3101250CACHE dsCache,
+                                        LPDSB3101250WORKCACHE dsWorkCache,
+                                        LPDSB3101250INTERNAL dsInternal,
+                                        LPDSD3101940 dsCSMSCache,
+                                        LPDSB3101250CACHE dsOrigCache);
+
+static ID I3101250_EditLineFullEdits(LPDSB3101250INTERNAL dsInternal,
+                                     LPDSB3101250CACHE dsCache,
+                                     LPDSD3101250B lpDS,
+                                     LPDSB3101250CACHE dsOrigCache,
+                                     LPDSB3101250WORKCACHE dsWorkCache,
+                                     LPDSD3101940 dsCSMSCache);
+
+static BOOL I3101250_DetermineTimeReported(LPDSD3101250B lpDS,
+                                            LPDSB3101250CACHE lpdsCache,
+                                            LPDSB3101250WORKCACHE lpdsWorkCache,
+                                            LPDSB3101250INTERNAL lpdsInternal);
+
+static ID IB3101250_BeginDocLoadWorkCache(LPDSD3101250A lpDS,
+                                          LPDSB3101250INTERNAL lpdsInternal,
+                                          LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID I3101250_GetVersion(LPDSB3101250INTERNAL lpdsInternal,
+                              LPDSD3101250A lpDS,
+                              LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID IB3101250_GetInteractiveVersions(LPDSB3101250INTERNAL lpdsInternal,
+                                           LPDSD3101250A lpDS,
+                                           LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID IB3101250_GetCSMSInteractiveVersion(LPDSB3101250INTERNAL lpdsInternal,
+                                              LPDSD3101250A lpDS,
+                                              LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID IB3101250_GetMFGInteractiveVersions(LPDSB3101250INTERNAL lpdsInternal,
+                                              LPDSD3101250A lpDS,
+                                              LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static ID IB3101250_GetBatchVersions(LPDSB3101250INTERNAL lpdsInternal,
+                                     LPDSD3101250A lpDS,
+                                     LPDSB3101250WORKCACHE lpdsWorkCache);
+
+static BOOL IB3101250_CheckIfPOMBFEditLineCalled(LPDSB3101250INTERNAL    lpdsInternal,
+                                                 LPDSB3101250WORKCACHE   lpdsWorkCache,
+                                                 LPDSB3101250CACHE       lpdsF3112Cache);
+static void I3101250_TerminateB3200350Cache(LPDSB3101250INTERNAL lpdsInternal); /*6516981*/
+
+void I3101250_AddRoutingToAPSCache                 (LPDSB3101250INTERNAL   lpdsInternal,
+                                                   LPDSB3101250CACHE       lpdsCache,
+                                                   LPDSB3101250WORKCACHE   lpdsWorkCache,
+                                                   LPF3112                 lpdsOriginalF3112,
+                                                   BOOL                    bDeleteKeyChange,
+                                                   BOOL                    bPrimaryOutputOnly);
+
+void I3101250_DetermineOrderPromising              (LPDSB3101250INTERNAL lpdsInternal,
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+
+void I3101250_PopulateSuccessiveOperation          (LPDSB3101250INTERNAL lpdsInternal,
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+
+void I3101250_PublishRoutingToAPS                  (LPDSB3101250INTERNAL lpdsInternal,
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache,
+                                                   int                   nFirstRecord,
+                                                   int                   nDeletedLastRecord,
+                                                   BOOL                  bNewRouting);
+
+void I3101250_CalculatePrecedenceTypeAndOffset     (LPDSB3101250INTERNAL  lpdsInternal,
+                                                   LPDSB3101250CACHE     lpdsMainCache,
+                                                   LPMATH_NUMERIC        lpmnPrecedenceOffset,
+                                                   JCHAR*                lpszPrecedenceType);
+
+void I3101250_PrimaryOutputEvent                 (LPDSB3101250INTERNAL  lpdsInternal,
+                                                   LPDSB3101250WORKCACHE lpdsWorkCache);
+
+
+
+#endif    /* __B3101250_H */
+
+
