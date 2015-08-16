@@ -1,0 +1,5 @@
+# Microsoft Developer Studio Generated Dependency File, included by ManejadorPantalla.mak
+
+.\mp01.cpp : \
+	"..\..\..\varios c\pdcurses\win32\include\curses.h"\
+	

@@ -1,0 +1,39 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: ManejadorPantalla - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSP96.tmp" with contents
+[
+/nologo /Gz /Zp1 /MLd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "KERNEL" /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"C:\E810\OWDC\Source\ManejadorPantalla\mp01.cpp"
+]
+Creating command line "cl.exe @C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSP96.tmp" 
+Creating temporary file "C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSP97.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib c:\e810\OWDC\lib\pdcurses.lib c:\e810\system\lib32\jdeunicode.lib c:\e810\system\lib32\jdel.lib c:\e810\system\lib32\jdekrnl.lib /nologo /dll /incremental:yes /pdb:"Debug/OWDCmp.pdb" /debug /machine:I386 /out:"Debug/OWDCmp.dll" /implib:"Debug/OWDCmp.lib" /pdbtype:sept 
+.\Debug\mp01.obj
+]
+Creating command line "link.exe @C:\DOCUME~1\LUISCA~1\CONFIG~1\Temp\RSP97.tmp"
+<h3>Output Window</h3>
+Compiling...
+mp01.cpp
+c:\documents and settings\luiscapriles\mis documentos\_proyectos\dev\varios c\pdcurses\win32\include\curses.h(157) : warning C4005: 'MOUSE_MOVED' : macro redefinition
+        c:\archivos de programa\microsoft visual studio\vc98\include\wincon.h(95) : see previous definition of 'MOUSE_MOVED'
+Linking...
+LINK : LNK6004: Debug/OWDCmp.dll not found or not built by the last incremental link; performing full link
+   Creating library Debug/OWDCmp.lib and object Debug/OWDCmp.exp
+LINK : warning LNK4098: defaultlib "LIBC" conflicts with use of other libs; use /NODEFAULTLIB:library
+LINK : warning LNK4049: locally defined symbol "_stdscr" imported
+LINK : warning LNK4049: locally defined symbol "_ttytype" imported
+
+
+
+<h3>Results</h3>
+OWDCmp.dll - 0 error(s), 4 warning(s)
+</pre>
+</body>
+</html>
